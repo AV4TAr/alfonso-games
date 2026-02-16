@@ -685,6 +685,8 @@ function drawDoor() {
                 enterLevel2();
             } else if (currentLevel === 2) {
                 enterLevel3();
+            } else if (currentLevel === 3) {
+                enterLevel4(); // Will create this next!
             }
         }
     }
@@ -1142,12 +1144,17 @@ function updateSkeletons() {
                     createParticles(skeleton.x + skeleton.width/2, skeleton.y + skeleton.height/2, skeleton.color, 20);
 
                     if (skeleton.isSkeletonBoss) {
-                        // Skeleton King defeated - WIN!
+                        // Skeleton King defeated - spawn door to Level 4!
                         createParticles(skeleton.x + skeleton.width/2, skeleton.y + skeleton.height/2, '#ffd700', 100);
                         skeletons.splice(i, 1);
-                        setTimeout(() => {
-                            victory();
-                        }, 1000);
+
+                        // Spawn magical door to Level 4
+                        door = {
+                            x: canvas.width / 2 - 40,
+                            y: canvas.height / 2 - 60,
+                            width: 80,
+                            height: 120
+                        };
                     } else {
                         skeletonsKilled++;
                         skeletons.splice(i, 1);
