@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dragon vs Wardens</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-container">
+        <div id="hud">
+            <div id="lives">Lives: <span id="lives-count">10</span> ❤️</div>
+            <div id="score">Score: <span id="score-count">0</span></div>
+            <div id="power-status"></div>
+        </div>
+        <canvas id="gameCanvas"></canvas>
+        <div id="game-over" class="hidden">
+            <h1>Game Over!</h1>
+            <p>Final Score: <span id="final-score">0</span></p>
+            <button onclick="location.reload()">Play Again</button>
+        </div>
+        <div id="victory" class="hidden">
+            <h1>You Won! 🐉</h1>
+            <p>Final Score: <span id="victory-score">0</span></p>
+            <button onclick="location.reload()">Play Again</button>
+        </div>
+        <div id="math-question" class="hidden">
+            <h1>Continue? 🧮</h1>
+            <p>Solve this math problem to restore your health!</p>
+            <div id="math-problem-display">
+                <span id="math-problem" style="font-size: 48px; color: #ffd700;">5 + 3</span>
+                <span style="font-size: 48px; color: #ffd700;"> = ?</span>
+            </div>
+            <input type="number" id="math-answer" placeholder="Your answer" style="font-size: 32px; padding: 10px; margin: 20px 0; width: 200px; text-align: center;">
+            <br>
+            <button onclick="checkMathAnswer()">Submit Answer</button>
+            <p id="math-feedback" style="margin-top: 15px; font-size: 20px; min-height: 30px;"></p>
+            <p style="color: #00d4ff; margin-top: 10px;">Attempts left: <span id="math-attempts">3</span></p>
+        </div>
+        <div id="instructions">
+            <h2>Controls:</h2>
+            <p>⬆️⬇️⬅️➡️ Arrow Keys - Move Dragon</p>
+            <p>SPACEBAR - Shoot Fireball</p>
+            <p>P - Turn Invisible</p>
+            <p><br><strong>Level 1:</strong> Kill 5 wardens + BOSS WARDEN to open the door!</p>
+            <p><strong>Level 2:</strong> Defeat 5 enemy dragons + DRAGON BOSS to win!</p>
+            <button onclick="startGame()">Start Game</button>
+        </div>
+    </div>
+    <script src="game.js"></script>
+    <script>
+        // Allow Enter key to submit math answer
+        document.addEventListener('DOMContentLoaded', () => {
+            const mathInput = document.getElementById('math-answer');
+            mathInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    checkMathAnswer();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
