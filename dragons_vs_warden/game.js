@@ -18,6 +18,8 @@ let door = null;
 let bossDefeated = false;
 let enemyDragonsKilled = 0;
 let dragonBossSpawned = false;
+let skeletonsKilled = 0;
+let skeletonBossSpawned = false;
 let continueAttempts = 3;
 let currentMathQuestion = null;
 
@@ -42,6 +44,8 @@ const dragon = {
 const fireballs = [];
 const wardens = [];
 const enemyDragons = [];
+const skeletons = [];
+const enemyProjectiles = []; // bones and skulls
 const particles = [];
 const powerUps = [];
 const enemyFire = [];
@@ -664,18 +668,24 @@ function drawDoor() {
         ctx.ellipse(door.x + 40, door.y + 60, 25, 40, time, 0, Math.PI * 2);
         ctx.fill();
 
-        // Text
+        // Text - show next level number
         ctx.fillStyle = '#ffff00';
         ctx.font = 'bold 16px Arial';
         ctx.textAlign = 'center';
-        ctx.fillText('LEVEL 2', door.x + 40, door.y - 10);
+        ctx.fillText(`LEVEL ${currentLevel + 1}`, door.x + 40, door.y - 10);
 
         // Check collision with dragon
         if (dragon.x + dragon.width > door.x &&
             dragon.x < door.x + door.width &&
             dragon.y + dragon.height > door.y &&
             dragon.y < door.y + door.height) {
-            enterLevel2();
+
+            // Go to next level
+            if (currentLevel === 1) {
+                enterLevel2();
+            } else if (currentLevel === 2) {
+                enterLevel3();
+            }
         }
     }
 }
@@ -791,12 +801,17 @@ function updateEnemyDragons() {
                     createParticles(eDragon.x + 35, eDragon.y + 30, eDragon.color, 20);
 
                     if (eDragon.isDragonBoss) {
-                        // Dragon boss defeated - victory!
+                        // Dragon boss defeated - spawn door to Level 3!
                         createParticles(eDragon.x + eDragon.width/2, eDragon.y + eDragon.height/2, '#ffd700', 100);
                         enemyDragons.splice(i, 1);
-                        setTimeout(() => {
-                            victory();
-                        }, 1000);
+
+                        // Spawn door to Level 3
+                        door = {
+                            x: canvas.width / 2 - 40,
+                            y: canvas.height / 2 - 60,
+                            width: 80,
+                            height: 120
+                        };
                     } else {
                         enemyDragonsKilled++;
                         enemyDragons.splice(i, 1);
@@ -956,6 +971,450 @@ function spawnDragonBoss() {
 
     enemyDragons.push(dragonBoss);
     damageSound();
+}
+
+// ===== LEVEL 3: SKELETON WARRIORS =====
+
+function enterLevel3() {
+    currentLevel = 3;
+    door = null;
+    wardensKilled = 0;
+    wardensSpawned = 0;
+    bossSpawned = false;
+    bossDefeated = false;
+    enemyDragonsKilled = 0;
+    dragonBossSpawned = false;
+    skeletonsKilled = 0;
+    skeletonBossSpawned = false;
+
+    // Clear existing enemies
+    wardens.length = 0;
+    enemyDragons.length = 0;
+    enemyFire.length = 0;
+    enemyProjectiles.length = 0;
+
+    // Start spawning skeletons
+    spawnSkeletons();
+    powerSound();
+}
+
+// Skeleton spawning for Level 3
+function spawnSkeletons() {
+    let skeletonsSpawned = 0;
+    const maxSkeletons = 7;
+
+    const spawnInterval = setInterval(() => {
+        if (!gameRunning || currentLevel !== 3) {
+            clearInterval(spawnInterval);
+            return;
+        }
+
+        // Check if Skeleton King boss should spawn
+        if (skeletonsKilled >= 7 && !skeletonBossSpawned) {
+            spawnSkeletonKing();
+            clearInterval(spawnInterval);
+            return;
+        }
+
+        if (skeletonsSpawned >= maxSkeletons) {
+            clearInterval(spawnInterval);
+            return;
+        }
+
+        const skeleton = {
+            x: Math.random() * (canvas.width - 60),
+            y: -70,
+            width: 60,
+            height: 70,
+            health: 7,
+            maxHealth: 7,
+            speed: 2.5,
+            color: '#e0e0e0', // Light gray
+            points: 20,
+            attackCooldown: 0,
+            throwCooldown: 0,
+            isSkeletonBoss: false
+        };
+
+        skeletons.push(skeleton);
+        skeletonsSpawned++;
+    }, 2000);
+}
+
+// Skeleton King Boss
+function spawnSkeletonKing() {
+    skeletonBossSpawned = true;
+
+    const skeletonKing = {
+        x: canvas.width / 2 - 75,
+        y: -140,
+        width: 150,
+        height: 210,
+        health: 40,
+        maxHealth: 40,
+        speed: 1.2,
+        color: '#ffffff', // White
+        points: 250,
+        attackCooldown: 0,
+        throwCooldown: 0,
+        isSkeletonBoss: true,
+        hasSummonedHelpers: false
+    };
+
+    skeletons.push(skeletonKing);
+    damageSound();
+}
+
+// Update skeletons
+function updateSkeletons() {
+    for (let i = skeletons.length - 1; i >= 0; i--) {
+        const skeleton = skeletons[i];
+
+        // Move towards player
+        const dx = dragon.x - skeleton.x;
+        const dy = dragon.y - skeleton.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance > 60) {
+            skeleton.x += (dx / distance) * skeleton.speed;
+            skeleton.y += (dy / distance) * skeleton.speed;
+        } else {
+            // Melee attack if close
+            if (skeleton.attackCooldown <= 0 && !dragon.invisible) {
+                lives--;
+                skeleton.attackCooldown = 1500;
+                damageSound();
+                updateLives();
+                createParticles(dragon.x, dragon.y, '#ff4757', 10);
+
+                if (lives <= 0) {
+                    gameOver();
+                }
+            }
+        }
+
+        skeleton.attackCooldown -= 16;
+
+        // Throw bones/skulls
+        skeleton.throwCooldown -= 16;
+        if (skeleton.throwCooldown <= 0) {
+            if (skeleton.isSkeletonBoss) {
+                throwSkull(skeleton); // Boss throws skulls
+            } else {
+                throwBone(skeleton); // Regular skeletons throw bones
+            }
+            skeleton.throwCooldown = skeleton.isSkeletonBoss ? 2000 : 3000;
+        }
+
+        // Skeleton King summons helpers at 50% health
+        if (skeleton.isSkeletonBoss && skeleton.health <= 20 && !skeleton.hasSummonedHelpers) {
+            skeleton.hasSummonedHelpers = true;
+            summonMiniSkeletons();
+        }
+
+        // Check collision with player fireballs
+        for (let j = fireballs.length - 1; j >= 0; j--) {
+            const fireball = fireballs[j];
+            const dist = Math.sqrt(
+                Math.pow(fireball.x - (skeleton.x + skeleton.width / 2), 2) +
+                Math.pow(fireball.y - (skeleton.y + skeleton.height / 2), 2)
+            );
+
+            if (dist < fireball.radius + 30) {
+                // 30% chance for regular skeletons to dodge
+                if (!skeleton.isSkeletonBoss && Math.random() < 0.3) {
+                    // Dodged! Visual feedback
+                    createParticles(skeleton.x + 30, skeleton.y + 35, '#ffffff', 5);
+                    powerSound();
+                    fireballs.splice(j, 1);
+                    break;
+                }
+
+                skeleton.health -= fireball.damage;
+                fireballs.splice(j, 1);
+                hitSound();
+                createParticles(skeleton.x + skeleton.width/2, skeleton.y + skeleton.height/2, skeleton.color, 5);
+
+                if (skeleton.health <= 0) {
+                    score += skeleton.points;
+                    updateScore();
+                    killSound();
+                    createParticles(skeleton.x + skeleton.width/2, skeleton.y + skeleton.height/2, skeleton.color, 20);
+
+                    if (skeleton.isSkeletonBoss) {
+                        // Skeleton King defeated - WIN!
+                        createParticles(skeleton.x + skeleton.width/2, skeleton.y + skeleton.height/2, '#ffd700', 100);
+                        skeletons.splice(i, 1);
+                        setTimeout(() => {
+                            victory();
+                        }, 1000);
+                    } else {
+                        skeletonsKilled++;
+                        skeletons.splice(i, 1);
+
+                        // Spawn Skeleton King after killing 7 skeletons
+                        if (skeletonsKilled >= 7 && !skeletonBossSpawned) {
+                            setTimeout(() => {
+                                spawnSkeletonKing();
+                            }, 2000);
+                        }
+                    }
+                }
+                break;
+            }
+        }
+    }
+}
+
+// Throw bone (regular skeletons)
+function throwBone(skeleton) {
+    const centerX = skeleton.x + skeleton.width / 2;
+    const centerY = skeleton.y + skeleton.height / 2;
+
+    enemyProjectiles.push({
+        x: centerX,
+        y: centerY,
+        width: 20,
+        height: 8,
+        speed: 4,
+        damage: 1,
+        dx: (dragon.x - centerX) / 100,
+        dy: (dragon.y - centerY) / 100,
+        type: 'bone',
+        rotation: 0
+    });
+
+    shootSound();
+}
+
+// Throw skull (Skeleton King)
+function throwSkull(skeleton) {
+    const centerX = skeleton.x + skeleton.width / 2;
+    const centerY = skeleton.y + skeleton.height / 2;
+
+    // Boss throws 3 skulls
+    for (let i = -1; i <= 1; i++) {
+        enemyProjectiles.push({
+            x: centerX,
+            y: centerY,
+            width: 25,
+            height: 25,
+            speed: 3.5,
+            damage: 2,
+            dx: (dragon.x + i * 100 - centerX) / 100,
+            dy: (dragon.y - centerY) / 100,
+            type: 'skull',
+            rotation: 0
+        });
+    }
+
+    shootSound();
+}
+
+// Summon mini skeletons (when Skeleton King at 50% health)
+function summonMiniSkeletons() {
+    for (let i = 0; i < 2; i++) {
+        const miniSkeleton = {
+            x: Math.random() * (canvas.width - 60),
+            y: -70,
+            width: 50,
+            height: 60,
+            health: 5,
+            maxHealth: 5,
+            speed: 3,
+            color: '#d0d0d0',
+            points: 15,
+            attackCooldown: 0,
+            throwCooldown: Math.random() * 2000,
+            isSkeletonBoss: false
+        };
+        skeletons.push(miniSkeleton);
+    }
+    powerSound();
+}
+
+// Update enemy projectiles (bones and skulls)
+function updateEnemyProjectiles() {
+    for (let i = enemyProjectiles.length - 1; i >= 0; i--) {
+        const proj = enemyProjectiles[i];
+
+        // Move projectile
+        proj.x += proj.dx * proj.speed * 10;
+        proj.y += proj.dy * proj.speed * 10;
+        proj.rotation += 0.1;
+
+        // Remove if off screen
+        if (proj.x < -50 || proj.x > canvas.width + 50 || proj.y < -50 || proj.y > canvas.height + 50) {
+            enemyProjectiles.splice(i, 1);
+            continue;
+        }
+
+        // Check collision with player
+        if (!dragon.invisible) {
+            const dist = Math.sqrt(
+                Math.pow(proj.x - (dragon.x + dragon.width / 2), 2) +
+                Math.pow(proj.y - (dragon.y + dragon.height / 2), 2)
+            );
+
+            if (dist < 30) {
+                lives -= proj.damage;
+                updateLives();
+                damageSound();
+                createParticles(dragon.x + dragon.width/2, dragon.y + dragon.height/2, '#ffffff', 10);
+                enemyProjectiles.splice(i, 1);
+
+                if (lives <= 0) {
+                    gameOver();
+                }
+            }
+        }
+    }
+}
+
+// Draw skeletons
+function drawSkeletons() {
+    skeletons.forEach(skeleton => {
+        const centerX = skeleton.x + skeleton.width / 2;
+        const centerY = skeleton.y + skeleton.height / 2;
+        const isBoss = skeleton.isSkeletonBoss;
+        const scale = isBoss ? 1 : 1;
+
+        // Skeleton body (simple stick figure style)
+        ctx.strokeStyle = skeleton.color;
+        ctx.lineWidth = isBoss ? 6 : 4;
+
+        // Head (skull)
+        ctx.fillStyle = skeleton.color;
+        ctx.beginPath();
+        ctx.arc(centerX, skeleton.y + 15 * scale, 15 * scale, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Eye sockets (dark)
+        ctx.fillStyle = '#000000';
+        ctx.beginPath();
+        ctx.arc(centerX - 6 * scale, skeleton.y + 12 * scale, 3 * scale, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(centerX + 6 * scale, skeleton.y + 12 * scale, 3 * scale, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Body (ribcage)
+        ctx.strokeStyle = skeleton.color;
+        ctx.beginPath();
+        ctx.moveTo(centerX, skeleton.y + 30 * scale);
+        ctx.lineTo(centerX, skeleton.y + 60 * scale);
+        ctx.stroke();
+
+        // Ribs
+        for (let i = 0; i < 3; i++) {
+            const ribY = skeleton.y + (35 + i * 8) * scale;
+            ctx.beginPath();
+            ctx.moveTo(centerX - 10 * scale, ribY);
+            ctx.lineTo(centerX + 10 * scale, ribY);
+            ctx.stroke();
+        }
+
+        // Arms
+        ctx.beginPath();
+        ctx.moveTo(centerX - 15 * scale, skeleton.y + 35 * scale);
+        ctx.lineTo(centerX - 25 * scale, skeleton.y + 50 * scale);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(centerX + 15 * scale, skeleton.y + 35 * scale);
+        ctx.lineTo(centerX + 25 * scale, skeleton.y + 50 * scale);
+        ctx.stroke();
+
+        // Legs
+        ctx.beginPath();
+        ctx.moveTo(centerX, skeleton.y + 60 * scale);
+        ctx.lineTo(centerX - 10 * scale, skeleton.y + 80 * scale);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(centerX, skeleton.y + 60 * scale);
+        ctx.lineTo(centerX + 10 * scale, skeleton.y + 80 * scale);
+        ctx.stroke();
+
+        // Crown for Skeleton King
+        if (isBoss) {
+            const crownY = skeleton.y - 10;
+
+            // Crown base
+            ctx.fillStyle = '#ffd700';
+            ctx.beginPath();
+            ctx.moveTo(centerX - 25, crownY + 20);
+            ctx.lineTo(centerX - 20, crownY);
+            ctx.lineTo(centerX - 10, crownY + 15);
+            ctx.lineTo(centerX, crownY - 5);
+            ctx.lineTo(centerX + 10, crownY + 15);
+            ctx.lineTo(centerX + 20, crownY);
+            ctx.lineTo(centerX + 25, crownY + 20);
+            ctx.closePath();
+            ctx.fill();
+
+            // Crown jewels
+            ctx.fillStyle = '#ff0000';
+            ctx.beginPath();
+            ctx.arc(centerX - 20, crownY, 4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(centerX, crownY - 5, 4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(centerX + 20, crownY, 4, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Boss label
+            ctx.fillStyle = '#ffff00';
+            ctx.font = 'bold 20px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('SKELETON KING', centerX, skeleton.y - 30);
+        }
+
+        // Health bar
+        const healthPercent = skeleton.health / skeleton.maxHealth;
+        ctx.fillStyle = '#333';
+        ctx.fillRect(skeleton.x, skeleton.y - 10, skeleton.width, 5);
+        ctx.fillStyle = healthPercent > 0.5 ? '#00ff00' : healthPercent > 0.25 ? '#ffff00' : '#ff0000';
+        ctx.fillRect(skeleton.x, skeleton.y - 10, skeleton.width * healthPercent, 5);
+    });
+}
+
+// Draw enemy projectiles (bones and skulls)
+function drawEnemyProjectiles() {
+    enemyProjectiles.forEach(proj => {
+        ctx.save();
+        ctx.translate(proj.x, proj.y);
+        ctx.rotate(proj.rotation);
+
+        if (proj.type === 'bone') {
+            // Draw bone
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(-10, -4, 20, 8);
+            ctx.beginPath();
+            ctx.arc(-10, 0, 5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(10, 0, 5, 0, Math.PI * 2);
+            ctx.fill();
+        } else if (proj.type === 'skull') {
+            // Draw skull
+            ctx.fillStyle = '#e0e0e0';
+            ctx.beginPath();
+            ctx.arc(0, 0, 12, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Eye sockets
+            ctx.fillStyle = '#000000';
+            ctx.beginPath();
+            ctx.arc(-5, -2, 3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(5, -2, 3, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        ctx.restore();
+    });
 }
 
 // Particles
@@ -1294,16 +1753,20 @@ function gameLoop() {
     updateFireballs();
     updateWardens();
     updateEnemyDragons();
+    updateSkeletons();
     updateParticles();
     updatePowerUps();
     updateEnemyFire();
+    updateEnemyProjectiles();
 
     drawDoor();
     drawPowerUps();
     drawWardens();
     drawEnemyDragons();
+    drawSkeletons();
     drawFireballs();
     drawEnemyFire();
+    drawEnemyProjectiles();
     drawDragon();
     drawParticles();
 
