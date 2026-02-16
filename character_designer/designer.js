@@ -102,8 +102,13 @@ function setupEventListeners() {
     document.getElementById('clear-btn').addEventListener('click', clearCanvas);
     document.getElementById('save-btn').addEventListener('click', saveCharacter);
     document.getElementById('load-btn').addEventListener('click', showLoadDialog);
+    document.getElementById('paste-btn').addEventListener('click', showPasteDialog);
     document.getElementById('export-btn').addEventListener('click', exportCharacter);
     document.getElementById('generate-btn').addEventListener('click', generateStarter);
+
+    // Paste modal buttons
+    document.getElementById('paste-import-btn').addEventListener('click', importFromPaste);
+    document.getElementById('paste-cancel-btn').addEventListener('click', hidePasteDialog);
 
     // Keyboard shortcuts
     document.addEventListener('keydown', handleKeyboard);
@@ -412,6 +417,35 @@ function loadCharacter(character) {
     render();
     updatePreviews();
     saveHistory();
+}
+
+// Paste JSON dialog
+function showPasteDialog() {
+    document.getElementById('paste-modal').classList.remove('hidden');
+    document.getElementById('json-input').value = '';
+    document.getElementById('json-input').focus();
+}
+
+function hidePasteDialog() {
+    document.getElementById('paste-modal').classList.add('hidden');
+}
+
+function importFromPaste() {
+    const jsonText = document.getElementById('json-input').value.trim();
+
+    if (!jsonText) {
+        alert('Please paste JSON data first!');
+        return;
+    }
+
+    try {
+        const character = JSON.parse(jsonText);
+        loadCharacter(character);
+        hidePasteDialog();
+        alert(`Character "${character.name}" loaded successfully!`);
+    } catch (err) {
+        alert('Error parsing JSON: ' + err.message + '\n\nMake sure you copied the entire JSON correctly.');
+    }
 }
 
 // Generate starter character

@@ -68,7 +68,8 @@
                     <h3>💾 Actions</h3>
                     <button id="clear-btn" class="action-btn">🗑️ Clear Canvas</button>
                     <button id="save-btn" class="action-btn primary">💾 Save Character</button>
-                    <button id="load-btn" class="action-btn">📂 Load Character</button>
+                    <button id="load-btn" class="action-btn">📂 Load File</button>
+                    <button id="paste-btn" class="action-btn">📋 Paste JSON</button>
                     <button id="export-btn" class="action-btn">📤 Export JSON</button>
                     <button id="generate-btn" class="action-btn">✨ Generate Starter</button>
                 </div>
@@ -128,6 +129,19 @@
                         <p>• Hover to see pixel coordinates</p>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Paste JSON Modal -->
+    <div id="paste-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2>📋 Paste Character JSON</h2>
+            <p>Paste your character JSON below:</p>
+            <textarea id="json-input" placeholder='{"name": "Dragon", "gridSize": 32, ...}'></textarea>
+            <div class="modal-buttons">
+                <button id="paste-import-btn" class="action-btn primary">Import</button>
+                <button id="paste-cancel-btn" class="action-btn">Cancel</button>
             </div>
         </div>
     </div>
