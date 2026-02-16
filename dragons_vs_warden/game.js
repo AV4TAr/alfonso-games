@@ -1011,13 +1011,6 @@ function spawnSkeletons() {
             return;
         }
 
-        // Check if Skeleton King boss should spawn
-        if (skeletonsKilled >= 7 && !skeletonBossSpawned) {
-            spawnSkeletonKing();
-            clearInterval(spawnInterval);
-            return;
-        }
-
         if (skeletonsSpawned >= maxSkeletons) {
             clearInterval(spawnInterval);
             return;
