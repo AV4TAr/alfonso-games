@@ -1730,7 +1730,7 @@ function checkMathAnswer() {
 }
 
 function continueGame() {
-    lives = 10; // Restore health
+    lives = 3; // Restore partial health (second chance)
     updateLives();
     gameRunning = true;
     continueAttempts = 3; // Reset attempts for next death
