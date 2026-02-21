@@ -1,148 +1,316 @@
-# 🎨 Character Designer
+# Character Designer - Full-Stack TypeScript Application
 
-A pixel art character creator for Alfonso's Games. Create 32x32 pixel art characters for your games!
+A pixel art character designer tool with AI generation capabilities, built with TypeScript, Fastify, and Vite.
 
-## 🚀 How to Use
+## 🏗️ Architecture
 
-1. Open `index.html` in Chrome browser
-2. Choose your tool (Pencil, Eraser, Fill, or Eyedropper)
-3. Pick colors from the palette
-4. Draw on the 32x32 grid
-5. Save your character!
+### Backend (Fastify + SQLite)
+- **Framework**: Fastify (fast, production-ready)
+- **Database**: SQLite with Drizzle ORM (local, type-safe)
+- **AI**: Claude API (Anthropic) - supports future local models
+- **Port**: 3000
 
-## 🛠️ Tools
+### Frontend (Vite + TypeScript)
+- **Build Tool**: Vite (fast HMR, modern bundling)
+- **Framework**: Vanilla TypeScript (lightweight, performant)
+- **Port**: 5173
 
-### Drawing Tools
-- **✏️ Pencil (P)** - Draw pixels
-- **🧹 Eraser (E)** - Erase pixels
-- **🪣 Fill (F)** - Fill connected areas
-- **💧 Eyedropper (I)** - Pick color from canvas
+## 🚀 Quick Start
 
-### Mouse Controls
-- **Left Click** - Use primary color
-- **Right Click** - Use secondary color
-- **Hover** - See pixel coordinates
+### 1. Install Dependencies
 
-### Keyboard Shortcuts
-- `P` - Switch to Pencil
-- `E` - Switch to Eraser
-- `F` - Switch to Fill
-- `I` - Switch to Eyedropper
-- `Ctrl+Z` - Undo
+```bash
+# From character_designer directory
+npm run install:all
+```
 
-## 🎨 Color Palette
+Or manually:
+```bash
+cd backend && npm install
+cd ../frontend && npm install
+```
 
-- 24 preset colors to choose from
-- Custom color picker for any color
-- Click color boxes to swap primary/secondary
-- Primary color = left click, Secondary = right click
+### 2. Configure Environment
 
-## 💾 Saving Characters
+```bash
+# Create .env file
+cp .env.example .env
 
-1. Fill in character info:
-   - **Name**: Character name
-   - **Type**: Player, Enemy, or Boss
-   - **Game**: Which game folder to save to
+# Edit .env and add your Anthropic API key
+# Get your key from: https://console.anthropic.com/
+```
 
-2. Click "💾 Save Character"
-   - Creates version number automatically (v1, v2, v3...)
-   - Downloads JSON file
-   - Saves to library for quick access
+Example `.env`:
+```bash
+PORT=3000
+NODE_ENV=development
+DATABASE_PATH=./data/characters.db
+ANTHROPIC_API_KEY=sk-ant-your-api-key-here
+FRONTEND_URL=http://localhost:5173
+```
 
-3. **Important**: Save the downloaded JSON file to:
-   ```
-   [game_name]/characters/[character_name]_v1.json
-   ```
-   For example:
-   ```
-   dragons_vs_warden/characters/dragon_v1.json
-   ```
+### 3. Run Development Servers
 
-## 📂 Loading Characters
+**Option A - Run both servers together:**
+```bash
+npm run dev
+```
 
-1. Click "📂 Load Character"
-2. Select a `.json` file from your computer
-3. Character will load into the editor
-4. You can edit and save as a new version
+**Option B - Run separately:**
 
-## ✨ Generate Starter Characters
+Terminal 1 - Backend:
+```bash
+cd backend
+npm run dev
+```
 
-Click "✨ Generate Starter" to create a basic character based on type:
-- **Player** - Simple dragon sprite
-- **Enemy** - Simple warden sprite
-- **Boss** - Simple skeleton sprite
+Terminal 2 - Frontend:
+```bash
+cd frontend
+npm run dev
+```
 
-Use these as starting points and customize them!
+**Open in browser:** `http://localhost:5173`
 
-## 👁️ Preview
+## ✨ Features
 
-Three preview windows show your character at different sizes:
-- **1x** (32px) - Actual size
-- **2x** (64px) - Medium size
-- **4x** (128px) - Large preview
+### Character Designer
+- **32x32 pixel grid** with 16x zoom for precise editing
+- **Drawing tools**: Pencil, Eraser, Fill bucket, Eyedropper
+- **Color system**: Primary/secondary colors with preset palette
+- **Undo system**: 50-step history (Ctrl+Z)
+- **Previews**: 1x, 2x, 4x scale previews
+- **Keyboard shortcuts**: P (pencil), E (eraser), F (fill), I (eyedropper)
 
-These show how your character will look in-game at different scales.
+### Character Management
+- **Backend storage**: SQLite database (replaces localStorage)
+- **Versioning**: Full version history for each character
+- **Library**: View and manage all saved characters
+- **Export/Import**: JSON format for sharing
 
-## 📚 Character Library
+### 🤖 AI Character Generation
+- **Natural language**: Describe your character in plain English
+- **Claude API**: Powered by Claude 3.5 Sonnet
+- **Auto-load**: Generated characters load directly into editor
+- **Future-proof**: Abstracted AI service supports future local models
 
-The library shows all characters you've created:
-- Click any character to load it into the editor
-- Stored in browser localStorage
-- Persists between sessions
+Example prompts:
+- "Create a blue knight with golden sword"
+- "Make a green goblin enemy with club"
+- "Design a red dragon boss with wings and crown"
 
-## 🎮 Using Characters in Games
+## 📁 Project Structure
 
-Characters are saved as JSON files with this structure:
-```json
-{
-  "name": "Dragon",
-  "type": "player",
-  "game": "dragons_vs_warden",
-  "version": 1,
-  "gridSize": 32,
-  "pixelData": [[...], [...], ...]
+```
+character_designer/
+├── backend/                    # Fastify server
+│   ├── src/
+│   │   ├── index.ts           # Server entry point
+│   │   ├── config.ts          # Environment configuration
+│   │   ├── db/
+│   │   │   ├── schema.ts      # Database schema (Drizzle)
+│   │   │   └── index.ts       # DB connection
+│   │   ├── routes/
+│   │   │   ├── characters.ts  # Character CRUD endpoints
+│   │   │   └── ai.ts          # AI generation endpoint
+│   │   └── services/
+│   │       └── ai.service.ts  # AI provider abstraction
+│   └── package.json
+│
+├── frontend/                   # Vite application
+│   ├── src/
+│   │   ├── main.ts            # Entry point
+│   │   ├── designer.ts        # State management
+│   │   ├── api/
+│   │   │   └── client.ts      # Type-safe API client
+│   │   └── components/
+│   │       ├── canvas.ts      # Canvas rendering
+│   │       ├── tools.ts       # Drawing tools
+│   │       └── ai-chat.ts     # AI chat interface
+│   ├── index.html
+│   ├── style.css
+│   └── package.json
+│
+├── shared/                     # Shared TypeScript types
+│   └── types/
+│       └── character.ts
+│
+├── docs/
+│   └── ai-generation-prompt.md # AI prompt template
+│
+├── .env.example
+├── .gitignore
+└── README.md
+```
+
+## 🔌 API Endpoints
+
+### Characters
+- `GET /api/characters` - List all characters
+- `GET /api/characters/:id` - Get character by ID
+- `POST /api/characters` - Create new character
+- `PUT /api/characters/:id` - Update character (creates new version)
+- `DELETE /api/characters/:id` - Delete character
+- `GET /api/characters/:id/versions` - Get all versions
+
+### AI
+- `GET /api/ai/status` - Check AI service availability
+- `POST /api/ai/generate` - Generate character from description
+
+## 🗄️ Database Schema
+
+### Characters
+```sql
+CREATE TABLE characters (
+  id INTEGER PRIMARY KEY,
+  name TEXT NOT NULL,
+  type TEXT NOT NULL,  -- 'player' | 'enemy' | 'boss'
+  game TEXT NOT NULL,
+  current_version INTEGER DEFAULT 1,
+  grid_size INTEGER DEFAULT 32,
+  created TEXT DEFAULT CURRENT_TIMESTAMP,
+  updated TEXT DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### Character Versions
+```sql
+CREATE TABLE character_versions (
+  id INTEGER PRIMARY KEY,
+  character_id INTEGER,
+  version INTEGER,
+  pixel_data TEXT,  -- JSON stringified 2D array
+  created TEXT DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (character_id) REFERENCES characters(id)
+);
+```
+
+## 💻 Development
+
+### Backend Commands
+```bash
+cd backend
+npm run dev        # Start dev server with hot reload (tsx watch)
+npm run build      # Compile TypeScript
+npm start          # Run production build
+npm run db:studio  # Open Drizzle Studio (database GUI)
+```
+
+### Frontend Commands
+```bash
+cd frontend
+npm run dev        # Start Vite dev server with HMR
+npm run build      # Build for production
+npm run preview    # Preview production build
+```
+
+### Root Commands
+```bash
+npm run install:all  # Install all dependencies
+npm run dev          # Run both backend and frontend
+npm run build        # Build both backend and frontend
+npm run setup        # Complete setup (install + create .env)
+```
+
+## 🔒 Security
+
+- **API Key**: Stored in `.env` file on server (never exposed to frontend)
+- **CORS**: Configured to only accept requests from configured frontend URL
+- **Database**: Local SQLite (no external connections)
+- **Input Validation**: All API endpoints validate input data
+- **No Client-Side Secrets**: Frontend proxies through backend for AI calls
+
+## ⚡ Performance
+
+- **Backend**: Fastify (2x faster than Express)
+- **Frontend**: Vite (instant HMR, optimized builds)
+- **Database**: SQLite with WAL mode (better concurrency)
+- **Build Time**: ~2-3 seconds (TypeScript + Vite)
+- **Bundle Size**: Optimized for production
+
+## 🔮 Future Enhancements
+
+### Planned Features
+- [ ] Local AI model support (Ollama, Mistral)
+- [ ] Batch character generation
+- [ ] Character refinement via multi-turn chat
+- [ ] Animation frame editor
+- [ ] Export as PNG sprite sheets
+- [ ] Collaborative editing (WebSocket)
+- [ ] Character templates library
+- [ ] Cost tracking for AI usage
+
+### Local Model Support
+The AI service is abstracted to support multiple providers:
+
+```typescript
+interface AIProvider {
+  generateCharacter(description: string): Promise<Character>;
+  isAvailable(): boolean;
 }
+
+// Current: ClaudeProvider (online, requires API key)
+// Future: LocalModelProvider (offline, free)
 ```
 
-Games can load and render these characters using the pixel data.
+Switch providers by updating `ai.service.ts` configuration.
 
-## 📁 File Organization
+## 🐛 Troubleshooting
 
+### Backend won't start
+```bash
+# Check if port 3000 is in use
+lsof -i :3000
+
+# Verify .env file exists
+ls -la .env
+
+# Check logs for errors
+cd backend && npm run dev
 ```
-alfonso-games/
-├── character_designer/          # This tool
-└── [game_name]/
-    └── characters/              # Save characters here
-        ├── player_name_v1.json
-        ├── enemy_name_v1.json
-        └── boss_name_v1.json
+
+### Frontend can't connect to backend
+- Ensure backend is running on port 3000
+- Check CORS configuration in backend/.env
+- Verify Vite proxy settings in frontend/vite.config.ts
+
+### AI generation fails
+- Check `ANTHROPIC_API_KEY` in .env
+- Verify key is valid (starts with `sk-ant-`)
+- Check API rate limits at https://console.anthropic.com/
+- Review backend logs for detailed error messages
+
+### Database errors
+```bash
+# Reset database
+rm -rf backend/data/characters.db
+
+# Restart backend (will recreate schema)
+cd backend && npm run dev
 ```
 
-## 💡 Tips
+### TypeScript compilation errors
+```bash
+# Clean build
+cd backend && rm -rf dist node_modules && npm install && npm run build
+cd ../frontend && rm -rf dist node_modules && npm install && npm run build
+```
 
-1. **Start Simple** - Begin with basic shapes, add details later
-2. **Use Symmetry** - For characters facing forward
-3. **Limited Colors** - Pixel art looks best with fewer colors
-4. **Save Versions** - Keep different versions as you iterate
-5. **Test in Game** - See how it looks when animated/moving
+## 📝 License
 
-## 🎯 Best Practices
+MIT
 
-- **Player Characters**: Make them distinctive and easy to see
-- **Enemies**: Different colors for different enemy types
-- **Bosses**: Bigger, more detailed, unique silhouette
-- **Contrast**: Use colors that stand out from backgrounds
+## 👨‍💻 Credits
 
-## 🔧 Technical Details
+**Created for Alfonso's Educational Game Collection ("fonchi")**
+- Builder: Alfonso (9 years old)
+- Helper: Claude Code
+- Version: 2.0 (Full-Stack TypeScript Rebuild)
 
-- Grid: 32x32 pixels
-- Canvas: 512x512 (16x zoom for editing)
-- File format: JSON
-- Color format: Hex (#RRGGBB)
-- Transparency: Represented as `null`
+### Previous Version
+- Version 1.0: Vanilla JavaScript with localStorage
+- Version 2.0: Full-stack TypeScript with SQLite + AI integration
 
 ---
 
-**Created by:** Alfonso
-**Tool by:** Claude Code
-**Version:** 1.0.0
+**Tech Stack**: TypeScript, Fastify, Vite, SQLite, Drizzle ORM, Claude API

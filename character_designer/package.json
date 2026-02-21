@@ -1,0 +1,17 @@
+{
+  "name": "character-designer",
+  "version": "2.0.0",
+  "description": "Full-stack TypeScript character designer with AI generation",
+  "private": true,
+  "scripts": {
+    "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "build": "cd backend && npm run build && cd ../frontend && npm run build",
+    "setup": "npm run install:all && cp .env.example .env && echo '\n✅ Setup complete! Edit .env to add your ANTHROPIC_API_KEY'"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

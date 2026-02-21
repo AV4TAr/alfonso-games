@@ -12,14 +12,21 @@ This repository contains multiple educational games built by Alfonso (9 years ol
 ```
 fonchi/
 ├── CLAUDE.md                    # This file
+├── character_designer/          # Pixel art tool for creating sprites
+│   ├── index.html
+│   ├── style.css
+│   ├── designer.js
+│   └── characters/              # Saved character JSON files
 ├── dragons_vs_warden/           # Game 1: Dragon vs Wardens
 │   ├── index.html
 │   ├── style.css
-│   └── game.js
+│   ├── game.js
+│   └── characters/              # Character sprites for this game
 └── [future_game_folders]/       # More games will be added here
+    └── characters/              # Each game has its own characters folder
 ```
 
-**Important**: Each game lives in its own folder. Future games should follow the same structure (index.html, style.css, game.js).
+**Important**: Each game lives in its own folder. Future games should follow the same structure (index.html, style.css, game.js, characters/).
 
 ### Current Games
 
@@ -43,6 +50,85 @@ open -a "Google Chrome" /Users/dsapriza/dev/fonchi/dragons_vs_warden/index.html
 - Arrow keys: Move dragon
 - Spacebar: Shoot fireballs
 - P: Invisibility power (with cooldown)
+
+### Development Tools
+
+#### Character Designer (`/character_designer/`)
+A pixel art editor for creating 32x32 character sprites for games.
+
+**How to Run:**
+```bash
+open -a "Google Chrome" /Users/dsapriza/dev/fonchi/character_designer/index.html
+```
+
+**AI Generation Prompt:**
+- Full prompt available at: `character_designer/docs/ai-generation-prompt.md`
+- Use with Claude/ChatGPT to generate character JSON files
+- Prompt ensures compatibility with Character Designer format
+
+**Key Features:**
+- 32x32 pixel grid with 16x zoom
+- Tools: Pencil (P), Eraser (E), Fill (F), Eyedropper (I)
+- Primary/Secondary color system (left/right click)
+- Undo system (Ctrl+Z)
+- Character library in localStorage
+- JSON export/import
+- Version control (v1, v2, v3...)
+- Three preview sizes (1x, 2x, 4x)
+
+**Workflow:**
+1. Draw character on 32x32 grid
+2. Save with name, type (player/enemy/boss), and game name
+3. File downloads as `[name]_v[#].json`
+4. Manually move JSON to `[game_name]/characters/` folder
+5. Load in game using character rendering code (see below)
+
+**Character JSON Format:**
+```javascript
+{
+  "name": "Red Dragon",
+  "type": "player",
+  "game": "dragons_vs_warden",
+  "version": 1,
+  "gridSize": 32,
+  "pixelData": [
+    [null, "#ff0000", "#ff0000", ...],  // 32x32 grid
+    [null, null, "#8b0000", ...],       // null = transparent
+    ...                                  // hex colors for pixels
+  ]
+}
+```
+
+**Integrating Characters into Games:**
+```javascript
+// Load character JSON file
+function loadCharacter(path) {
+  return fetch(path).then(r => r.json());
+}
+
+// Render character on canvas
+function renderCharacter(ctx, pixelData, x, y, scale = 1) {
+  const gridSize = pixelData.length;
+  for (let py = 0; py < gridSize; py++) {
+    for (let px = 0; px < gridSize; px++) {
+      const color = pixelData[py][px];
+      if (color) {  // Skip null (transparent)
+        ctx.fillStyle = color;
+        ctx.fillRect(x + px * scale, y + py * scale, scale, scale);
+      }
+    }
+  }
+}
+
+// Example usage in game
+loadCharacter('characters/red_dragon_v1.json').then(char => {
+  // Store character data
+  playerSprite = char.pixelData;
+
+  // In draw loop
+  renderCharacter(ctx, playerSprite, player.x, player.y, 2);
+});
+```
 
 ## CRITICAL PATTERN: Continue System (Reuse in ALL Games)
 
@@ -244,14 +330,21 @@ No build process needed. Simply:
 ### Creating New Games
 
 1. **Create new folder** in repository root (e.g., `space_shooter/`)
-2. **Copy template files** from existing game or create new:
+2. **Create characters first** using Character Designer:
+   - Open Character Designer in Chrome
+   - Draw player, enemies, bosses (32x32 pixels)
+   - Save each as JSON (specify game name)
+   - Create `characters/` folder in your game folder
+   - Move downloaded JSON files there
+3. **Copy template files** from existing game or create new:
    - `index.html` - Game canvas, HUD, overlays
    - `style.css` - Styling
    - `game.js` - Game logic
-3. **Implement continue system** with educational questions
-4. **Keep it simple**: Arrow keys + 1-2 action keys
-5. **Add visual/audio feedback**: Particles, sounds, screen shake
-6. **Test in Chrome**
+4. **Integrate character sprites** using character rendering code (see Development Tools section)
+5. **Implement continue system** with educational questions
+6. **Keep it simple**: Arrow keys + 1-2 action keys
+7. **Add visual/audio feedback**: Particles, sounds, screen shake
+8. **Test in Chrome**
 
 ### Git Workflow
 ```bash
@@ -276,10 +369,12 @@ git push
 
 ### Visual Design
 - Use bright, contrasting colors
+- **Use Character Designer for sprites** - Pixel art characters look professional
 - Emoji work great for icons (🐉🔥👻⚡)
 - Particle effects make impacts feel satisfying
 - Health bars show progress clearly
 - Glowing effects for special items
+- 32x32 sprites scale well (2x = 64px, 3x = 96px, etc.)
 
 ### Audio
 - Different sounds for different actions
@@ -307,3 +402,6 @@ When ready to publish:
 - Target platform: Chrome browser
 - Purpose: Educational game development + learning
 - All games should be fun, educational, and age-appropriate
+- **Character Designer** is a development tool, not a game - use it to create sprites for games
+- Character JSON files in `character_designer/characters/` are the source library
+- Copy character JSON files to individual game folders as needed

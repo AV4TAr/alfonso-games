@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Character Designer - Pixel Art Tool</title>
+</head>
+<body>
+    <div id="app">
+        <header>
+            <h1>🎨 Character Designer</h1>
+            <p>Create pixel art characters for your games!</p>
+        </header>
+
+        <div id="main-container">
+            <!-- Left Panel: Tools & Colors -->
+            <div id="left-panel">
+                <div class="panel-section">
+                    <h3>📐 Grid Size</h3>
+                    <div id="grid-size-options">
+                        <button class="grid-btn active" data-size="32">32</button>
+                        <button class="grid-btn" data-size="64">64</button>
+                        <button class="grid-btn" data-size="128">128</button>
+                        <button class="grid-btn" data-size="256">256</button>
+                    </div>
+                </div>
+
+                <div class="panel-section">
+                    <h3>🛠️ Tools</h3>
+                    <div id="tools">
+                        <button class="tool-btn active" data-tool="pencil" title="Pencil (P)">✏️ Pencil</button>
+                        <button class="tool-btn" data-tool="eraser" title="Eraser (E)">🧹 Eraser</button>
+                        <button class="tool-btn" data-tool="fill" title="Fill Bucket (F)">🪣 Fill</button>
+                        <button class="tool-btn" data-tool="eyedropper" title="Eyedropper (I)">💧 Pick Color</button>
+                    </div>
+                </div>
+
+                <div class="panel-section">
+                    <h3>🎨 Color Palette</h3>
+                    <div id="current-colors">
+                        <div class="color-display">
+                            <label>Primary:</label>
+                            <div id="primary-color" class="color-box"></div>
+                        </div>
+                        <div class="color-display">
+                            <label>Secondary:</label>
+                            <div id="secondary-color" class="color-box"></div>
+                        </div>
+                    </div>
+                    <input type="color" id="color-picker" value="#000000">
+
+                    <div id="preset-colors" class="color-grid">
+                        <!-- Preset colors will be added by JS -->
+                    </div>
+                </div>
+
+                <div class="panel-section">
+                    <h3>⚙️ Character Info</h3>
+                    <label>Type:</label>
+                    <select id="char-type">
+                        <option value="player">Player</option>
+                        <option value="enemy">Enemy</option>
+                        <option value="boss">Boss</option>
+                    </select>
+
+                    <label>Name:</label>
+                    <input type="text" id="char-name" placeholder="Character name">
+
+                    <label>Game:</label>
+                    <input type="text" id="char-game" placeholder="Game name" value="dragons_vs_warden">
+                </div>
+
+                <div class="panel-section">
+                    <h3>💾 Actions</h3>
+                    <button id="clear-btn" class="action-btn">🗑️ Clear Canvas</button>
+                    <button id="save-btn" class="action-btn primary">💾 Save Character</button>
+                    <button id="load-btn" class="action-btn">📂 Load Character</button>
+                    <button id="paste-btn" class="action-btn">📋 Paste JSON</button>
+                    <button id="export-btn" class="action-btn">📤 Export JSON</button>
+                    <button id="ai-generate-btn" class="action-btn ai-btn">🤖 AI Character Chat</button>
+                    <button id="show-prompt-btn" class="action-btn">📄 Show AI Prompt</button>
+                </div>
+            </div>
+
+            <!-- Center: Canvas -->
+            <div id="center-panel">
+                <div class="canvas-container">
+                    <h3>Canvas (32×32)</h3>
+                    <canvas id="pixel-canvas" width="512" height="512"></canvas>
+                    <div class="canvas-info">
+                        <span id="pixel-coords">Pixel: --, --</span>
+                        <span id="zoom-level">Zoom: 16x</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel: Preview & Library -->
+            <div id="right-panel">
+                <div class="panel-section">
+                    <h3>👁️ Preview</h3>
+                    <div class="preview-sizes">
+                        <div class="preview-item">
+                            <label id="preview-label-1x">1x (32px)</label>
+                            <canvas id="preview-1x" width="32" height="32"></canvas>
+                        </div>
+                        <div class="preview-item">
+                            <label id="preview-label-2x">2x (64px)</label>
+                            <canvas id="preview-2x" width="64" height="64"></canvas>
+                        </div>
+                        <div class="preview-item">
+                            <label id="preview-label-4x">4x (128px)</label>
+                            <canvas id="preview-4x" width="128" height="128"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel-section">
+                    <h3>📚 Character Library</h3>
+                    <div id="character-list">
+                        <p class="placeholder">No characters saved yet.<br>Create and save a character!</p>
+                    </div>
+                </div>
+
+                <div class="panel-section">
+                    <h3>ℹ️ Help</h3>
+                    <div class="help-text">
+                        <p><strong>Shortcuts:</strong></p>
+                        <p>P - Pencil</p>
+                        <p>E - Eraser</p>
+                        <p>F - Fill</p>
+                        <p>I - Eyedropper</p>
+                        <p>Ctrl+Z - Undo</p>
+                        <p><strong>Tips:</strong></p>
+                        <p>• Left click = primary color</p>
+                        <p>• Right click = secondary color</p>
+                        <p>• Hover to see pixel coordinates</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Paste JSON Modal -->
+    <div id="paste-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2>📋 Paste Character JSON</h2>
+            <p>Paste your character JSON below:</p>
+            <textarea id="json-input" placeholder='{"name": "Dragon", "gridSize": 32, ...}'></textarea>
+            <div class="modal-buttons">
+                <button id="paste-import-btn" class="action-btn primary">Import</button>
+                <button id="paste-cancel-btn" class="action-btn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Chat Modal -->
+    <div id="ai-modal" class="modal hidden">
+        <div class="modal-content chat-modal">
+            <div class="modal-header">
+                <h2>🤖 AI Character Generator</h2>
+                <button id="ai-close-btn" class="close-btn">✕</button>
+            </div>
+
+            <div id="ai-messages" class="chat-messages">
+                <div class="chat-message assistant">
+                    <p>👋 Hi! I can generate pixel art characters for you.</p>
+                    <p>Just describe what you want, like:</p>
+                    <ul>
+                        <li>"Create a blue knight with a golden sword"</li>
+                        <li>"Make a green goblin enemy with a club"</li>
+                        <li>"Design a red dragon boss with wings"</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="chat-input-container">
+                <textarea
+                    id="ai-input"
+                    placeholder="Describe your character in detail...&#10;Example: Create a blue knight with golden armor, holding a large sword, with a red cape flowing behind"
+                    autocomplete="off"
+                    rows="3"
+                ></textarea>
+                <button id="ai-send-btn" class="send-btn">Send</button>
+            </div>
+
+            <div class="chat-footer">
+                <span id="ai-status" class="status-indicator">● Checking AI service...</span>
+                <span id="ai-grid-badge" class="grid-badge">🎨 Grid: 32×32</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Prompt Modal -->
+    <div id="prompt-modal" class="modal hidden">
+        <div class="modal-content prompt-modal">
+            <div class="modal-header">
+                <h2>📄 AI Generation Prompt</h2>
+                <button id="prompt-close-btn" class="close-btn">✕</button>
+            </div>
+            <p class="prompt-description">
+                Copy this prompt to use with ChatGPT, Claude, or other AI tools to generate pixel art characters.
+            </p>
+            <div class="prompt-container">
+                <textarea id="prompt-text" readonly></textarea>
+            </div>
+            <div class="modal-buttons">
+                <button id="copy-prompt-btn" class="action-btn primary">📋 Copy to Clipboard</button>
+                <button id="prompt-cancel-btn" class="action-btn">Close</button>
+            </div>
+            <div id="copy-feedback" class="copy-feedback hidden">✓ Copied to clipboard!</div>
+        </div>
+    </div>
+
+    <link rel="stylesheet" href="./style.css">
+    <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
