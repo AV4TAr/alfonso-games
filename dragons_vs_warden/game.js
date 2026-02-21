@@ -136,6 +136,10 @@ document.addEventListener('keydown', (e) => {
         togglePause();
     }
 
+    if (e.key === 's') {
+        soundEnabled = !soundEnabled;
+    }
+
     if (e.key in keys) {
         keys[e.key] = true;
 
@@ -481,7 +485,10 @@ function spawnBossWarden() {
         points: 100,
         punchCooldown: 0,
         isBoss: true,
-        fireSpitCooldown: 0
+        fireSpitCooldown: 0,
+        chargeState: 'idle',
+        chargeTimer: 4000,
+        chargeTarget: { x: 0, y: 0 }
     };
 
     wardens.push(boss);
@@ -497,21 +504,76 @@ function updateWardens() {
         const dy = dragon.y - warden.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
 
-        if (distance > 50) {
-            warden.x += (dx / distance) * warden.speed;
-            warden.y += (dy / distance) * warden.speed;
+        if (warden.isBoss) {
+            // Boss Warden: Charge & Recover pattern
+            warden.chargeTimer -= 16;
+            if (warden.chargeState === 'idle') {
+                if (distance > 50) {
+                    warden.x += (dx / distance) * warden.speed;
+                    warden.y += (dy / distance) * warden.speed;
+                } else if (warden.punchCooldown <= 0 && !dragon.invisible) {
+                    lives--;
+                    warden.punchCooldown = 1000;
+                    damageSound();
+                    updateLives();
+                    createParticles(dragon.x, dragon.y, '#ff4757', 10);
+                    if (lives <= 0) gameOver();
+                }
+                if (warden.chargeTimer <= 0) {
+                    warden.chargeState = 'telegraph';
+                    warden.chargeTimer = 600;
+                }
+            } else if (warden.chargeState === 'telegraph') {
+                // Slow creep — visual warning before dash
+                if (distance > 50) {
+                    warden.x += (dx / distance) * 0.3;
+                    warden.y += (dy / distance) * 0.3;
+                }
+                if (warden.chargeTimer <= 0) {
+                    warden.chargeTarget = { x: dragon.x, y: dragon.y };
+                    warden.chargeState = 'charge';
+                    warden.chargeTimer = 400;
+                }
+            } else if (warden.chargeState === 'charge') {
+                // Dash toward locked target position
+                const cdx = warden.chargeTarget.x - warden.x;
+                const cdy = warden.chargeTarget.y - warden.y;
+                const cdist = Math.sqrt(cdx * cdx + cdy * cdy);
+                if (cdist > 5) {
+                    warden.x += (cdx / cdist) * 10;
+                    warden.y += (cdy / cdist) * 10;
+                }
+                if (distance < 60 && warden.punchCooldown <= 0 && !dragon.invisible) {
+                    lives--;
+                    warden.punchCooldown = 1000;
+                    damageSound();
+                    updateLives();
+                    createParticles(dragon.x, dragon.y, '#ff4757', 15);
+                    if (lives <= 0) gameOver();
+                }
+                if (warden.chargeTimer <= 0) {
+                    warden.chargeState = 'recover';
+                    warden.chargeTimer = 800;
+                }
+            } else if (warden.chargeState === 'recover') {
+                // Stop and recover
+                if (warden.chargeTimer <= 0) {
+                    warden.chargeState = 'idle';
+                    warden.chargeTimer = 4000;
+                }
+            }
         } else {
-            // Punch dragon if close enough
-            if (warden.punchCooldown <= 0 && !dragon.invisible) {
+            // Regular wardens: walk straight at player
+            if (distance > 50) {
+                warden.x += (dx / distance) * warden.speed;
+                warden.y += (dy / distance) * warden.speed;
+            } else if (warden.punchCooldown <= 0 && !dragon.invisible) {
                 lives--;
                 warden.punchCooldown = 1000;
                 damageSound();
                 updateLives();
                 createParticles(dragon.x, dragon.y, '#ff4757', 10);
-
-                if (lives <= 0) {
-                    gameOver();
-                }
+                if (lives <= 0) gameOver();
             }
         }
 
@@ -846,20 +908,38 @@ function updateEnemyDragons() {
         const dy = dragon.y - eDragon.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
 
-        if (distance > 60) {
-            eDragon.x += (dx / distance) * eDragon.speed;
-            eDragon.y += (dy / distance) * eDragon.speed;
-        } else {
-            // Attack if close
-            if (eDragon.attackCooldown <= 0 && !dragon.invisible) {
+        if (eDragon.isDragonBoss && distance > 1) {
+            // Dragon Boss: Swooping Zigzag
+            eDragon.sweepAngle += 0.05;
+            const perpX = -dy / distance;
+            const perpY = dx / distance;
+            if (distance > 60) {
+                eDragon.x += (dx / distance) * eDragon.speed + perpX * Math.sin(eDragon.sweepAngle) * 3;
+                eDragon.y += (dy / distance) * eDragon.speed + perpY * Math.sin(eDragon.sweepAngle) * 3;
+            } else if (eDragon.attackCooldown <= 0 && !dragon.invisible) {
                 lives--;
                 eDragon.attackCooldown = 1500;
                 damageSound();
                 updateLives();
                 createParticles(dragon.x, dragon.y, '#ff4757', 10);
+                if (lives <= 0) gameOver();
+            }
+        } else {
+            if (distance > 60) {
+                eDragon.x += (dx / distance) * eDragon.speed;
+                eDragon.y += (dy / distance) * eDragon.speed;
+            } else {
+                // Attack if close
+                if (eDragon.attackCooldown <= 0 && !dragon.invisible) {
+                    lives--;
+                    eDragon.attackCooldown = 1500;
+                    damageSound();
+                    updateLives();
+                    createParticles(dragon.x, dragon.y, '#ff4757', 10);
 
-                if (lives <= 0) {
-                    gameOver();
+                    if (lives <= 0) {
+                        gameOver();
+                    }
                 }
             }
         }
@@ -1059,7 +1139,8 @@ function spawnDragonBoss() {
         points: 200,
         attackCooldown: 0,
         fireSpitCooldown: 0,
-        isDragonBoss: true
+        isDragonBoss: true,
+        sweepAngle: 0
     };
 
     enemyDragons.push(dragonBoss);
@@ -1144,7 +1225,10 @@ function spawnSkeletonKing() {
         attackCooldown: 0,
         throwCooldown: 0,
         isSkeletonBoss: true,
-        hasSummonedHelpers: false
+        hasSummonedHelpers: false,
+        orbitAngle: 0,
+        closingIn: false,
+        closeInTimer: 5000
     };
 
     skeletons.push(skeletonKing);
@@ -1161,20 +1245,60 @@ function updateSkeletons() {
         const dy = dragon.y - skeleton.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
 
-        if (distance > 60) {
-            skeleton.x += (dx / distance) * skeleton.speed;
-            skeleton.y += (dy / distance) * skeleton.speed;
+        if (skeleton.isSkeletonBoss && distance > 1) {
+            // Skeleton King: Circle & Close
+            const orbitRadius = 180;
+            skeleton.closeInTimer -= 16;
+            if (!skeleton.closingIn) {
+                // Orbit around the player
+                skeleton.orbitAngle += 0.02;
+                const targetX = dragon.x + Math.cos(skeleton.orbitAngle) * orbitRadius;
+                const targetY = dragon.y + Math.sin(skeleton.orbitAngle) * orbitRadius;
+                const odx = targetX - skeleton.x;
+                const ody = targetY - skeleton.y;
+                const odist = Math.sqrt(odx * odx + ody * ody);
+                if (odist > 5) {
+                    skeleton.x += (odx / odist) * 2.5;
+                    skeleton.y += (ody / odist) * 2.5;
+                }
+                if (skeleton.closeInTimer <= 0) {
+                    skeleton.closingIn = true;
+                    skeleton.closeInTimer = 1500;
+                }
+            } else {
+                // Charge straight in for 1.5s then retreat back to orbit
+                if (distance > 50) {
+                    skeleton.x += (dx / distance) * 4;
+                    skeleton.y += (dy / distance) * 4;
+                } else if (skeleton.attackCooldown <= 0 && !dragon.invisible) {
+                    lives--;
+                    skeleton.attackCooldown = 1500;
+                    damageSound();
+                    updateLives();
+                    createParticles(dragon.x, dragon.y, '#ff4757', 10);
+                    if (lives <= 0) gameOver();
+                }
+                if (skeleton.closeInTimer <= 0) {
+                    skeleton.closingIn = false;
+                    skeleton.closeInTimer = 5000;
+                }
+            }
         } else {
-            // Melee attack if close
-            if (skeleton.attackCooldown <= 0 && !dragon.invisible) {
-                lives--;
-                skeleton.attackCooldown = 1500;
-                damageSound();
-                updateLives();
-                createParticles(dragon.x, dragon.y, '#ff4757', 10);
+            if (distance > 60) {
+                skeleton.x += (dx / distance) * skeleton.speed;
+                skeleton.y += (dy / distance) * skeleton.speed;
+            } else {
+                // Melee attack if close
+                if (skeleton.attackCooldown <= 0 && !dragon.invisible) {
+                    lives--;
+                    skeleton.attackCooldown = 1500;
+                    damageSound();
+                    updateLives();
+                    createParticles(dragon.x, dragon.y, '#ff4757', 10);
 
-                if (lives <= 0) {
-                    gameOver();
+                    if (lives <= 0) {
+                        gameOver();
+                    }
                 }
             }
         }
@@ -1401,9 +1525,10 @@ function spawnDarkWizard() {
         points: 300,
         attackCooldown: 0,
         boltCooldown: 0,
-        teleportCooldown: 4000,
+        teleportCooldown: 8000,
         isWizardBoss: true,
-        hasSummonedHelpers: false
+        hasSummonedHelpers: false,
+        strafeAngle: 0
     };
 
     wizards.push(darkWizard);
@@ -1421,12 +1546,30 @@ function updateWizards() {
 
         // Wizards keep their distance and cast spells
         const preferredDistance = wizard.isWizardBoss ? 200 : 160;
-        if (distance > preferredDistance) {
-            wizard.x += (dx / distance) * wizard.speed;
-            wizard.y += (dy / distance) * wizard.speed;
-        } else if (distance < preferredDistance - 40) {
-            wizard.x -= (dx / distance) * wizard.speed;
-            wizard.y -= (dy / distance) * wizard.speed;
+        if (wizard.isWizardBoss && distance > 1) {
+            // Dark Wizard: strafe while maintaining distance
+            wizard.strafeAngle += 0.03;
+            const perpX = -dy / distance;
+            const perpY = dx / distance;
+            if (distance > preferredDistance + 20) {
+                wizard.x += (dx / distance) * wizard.speed;
+                wizard.y += (dy / distance) * wizard.speed;
+            } else if (distance < preferredDistance - 40) {
+                wizard.x -= (dx / distance) * wizard.speed;
+                wizard.y -= (dy / distance) * wizard.speed;
+            } else {
+                // Strafe sideways while holding range
+                wizard.x += perpX * Math.sin(wizard.strafeAngle) * 2.5;
+                wizard.y += perpY * Math.sin(wizard.strafeAngle) * 2.5;
+            }
+        } else {
+            if (distance > preferredDistance) {
+                wizard.x += (dx / distance) * wizard.speed;
+                wizard.y += (dy / distance) * wizard.speed;
+            } else if (distance < preferredDistance - 40) {
+                wizard.x -= (dx / distance) * wizard.speed;
+                wizard.y -= (dy / distance) * wizard.speed;
+            }
         }
 
         // Melee if very close
@@ -1449,12 +1592,14 @@ function updateWizards() {
 
         // Teleport
         wizard.teleportCooldown -= 16;
-        if (wizard.teleportCooldown <= 0 && !wizard.isWizardBoss) {
+        if (wizard.teleportCooldown <= 0) {
             createParticles(wizard.x + wizard.width/2, wizard.y + wizard.height/2, '#9b00ff', 15);
             wizard.x = Math.random() * (canvas.width - wizard.width - 40) + 20;
             wizard.y = Math.random() * (canvas.height / 2 - 40) + 20;
             createParticles(wizard.x + wizard.width/2, wizard.y + wizard.height/2, '#9b00ff', 15);
-            wizard.teleportCooldown = Math.random() * 3000 + 4000;
+            wizard.teleportCooldown = wizard.isWizardBoss
+                ? Math.random() * 2000 + 8000
+                : Math.random() * 3000 + 4000;
             powerSound();
         }
 

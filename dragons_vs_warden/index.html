@@ -38,26 +38,48 @@
             <p style="color: #00d4ff; margin-top: 10px;">Attempts left: <span id="math-attempts">3</span></p>
         </div>
         <div id="instructions">
-            <h2>Controls:</h2>
-            <p>⬆️⬇️⬅️➡️ Arrow Keys - Move Dragon</p>
-            <p>SPACEBAR - Shoot Fireball</p>
-            <p>N - Turn Invisible</p>
-            <p>P - Pause Game</p>
-            <p><br><strong>Level 1:</strong> Kill 5 wardens + BOSS WARDEN 👑</p>
-            <p><strong>Level 2:</strong> Defeat 5 enemy dragons + DRAGON BOSS 👑</p>
-            <p><strong>Level 3:</strong> Destroy 7 skeletons + SKELETON KING 💀👑</p>
-            <p><strong>Level 4:</strong> Defeat 8 wizards + DARK WIZARD 🔮👑</p>
-            <p><strong>Level 5:</strong> Survive 8 electric eels + JELLYFISH QUEEN ⚡🪼👑</p>
-            <button onclick="startGame()">Start Game</button>
-            <div id="cheat-zone" onclick="activateCheatZone()">🔮</div>
-            <input type="text" id="cheat-input" class="hidden" placeholder="enter code..." maxlength="20" autocomplete="off" spellcheck="false">
+            <!-- Main screen -->
+            <div id="panel-controls">
+                <h2>Controls:</h2>
+                <p>⬆️⬇️⬅️➡️ Arrow Keys - Move Dragon</p>
+                <p>SPACEBAR - Shoot Fireball</p>
+                <p>N - Turn Invisible</p>
+                <p>P - Pause Game</p>
+                <p>S - Toggle Sound</p>
+                <div class="button-row">
+                    <button onclick="startGame()">Start Game</button>
+                    <button class="btn-secondary" onclick="showAbout()">About</button>
+                </div>
+                <div id="cheat-zone" onclick="activateCheatZone()">🔮</div>
+                <input type="text" id="cheat-input" class="hidden" placeholder="enter code..." maxlength="20" autocomplete="off" spellcheck="false">
+            </div>
+            <!-- About screen -->
+            <div id="panel-about" class="hidden">
+                <h2>Levels:</h2>
+                <p><strong>Level 1:</strong> Kill 5 wardens + BOSS WARDEN 👑</p>
+                <p><strong>Level 2:</strong> Defeat 5 enemy dragons + DRAGON BOSS 👑</p>
+                <p><strong>Level 3:</strong> Destroy 7 skeletons + SKELETON KING 💀👑</p>
+                <p><strong>Level 4:</strong> Defeat 8 wizards + DARK WIZARD 🔮👑</p>
+                <p><strong>Level 5:</strong> Survive 8 electric eels + JELLYFISH QUEEN ⚡🪼👑</p>
+                <button class="btn-secondary" onclick="showControls()">← Back</button>
+            </div>
         </div>
         <div id="cheat-flash" class="hidden">
             <span id="cheat-message"></span>
         </div>
+        <div id="footer">by Alfonso</div>
     </div>
     <script src="game.js"></script>
     <script>
+        function showAbout() {
+            document.getElementById('panel-controls').classList.add('hidden');
+            document.getElementById('panel-about').classList.remove('hidden');
+        }
+        function showControls() {
+            document.getElementById('panel-about').classList.add('hidden');
+            document.getElementById('panel-controls').classList.remove('hidden');
+        }
+
         // Allow Enter key to submit math answer
         document.addEventListener('DOMContentLoaded', () => {
             const mathInput = document.getElementById('math-answer');

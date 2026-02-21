@@ -162,6 +162,27 @@ button:active {
     font-weight: bold;
 }
 
+.button-row {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+.button-row button {
+    margin-top: 0;
+}
+
+.btn-secondary {
+    background: linear-gradient(135deg, #2c2c4e 0%, #3a3a5c 100%);
+    box-shadow: 0 4px 15px rgba(0, 212, 255, 0.2);
+    border: 1px solid #00d4ff44;
+}
+
+.btn-secondary:hover {
+    box-shadow: 0 6px 20px rgba(0, 212, 255, 0.35);
+}
+
 /* Cheat code system */
 #cheat-zone {
     position: absolute;
@@ -225,6 +246,14 @@ button:active {
     text-align: center;
     line-height: 1.6;
     padding: 20px;
+}
+
+#footer {
+    text-align: center;
+    padding: 8px 0 4px;
+    color: rgba(255, 255, 255, 0.25);
+    font-size: 13px;
+    letter-spacing: 1px;
 }
 
 @keyframes cheatFadeOut {

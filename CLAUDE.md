@@ -233,13 +233,40 @@ function playSound(frequency, duration, type = 'sine') {
 }
 ```
 
+## Testing Requirements (MANDATORY)
+
+**IMPORTANT RULE**: After every code change, Claude MUST:
+1. **Open the game in Chrome** using browser automation tools and visually verify the change works
+2. **Run unit tests** to confirm no regressions
+
+### Browser Testing
+After every change, open the game in Chrome and manually verify:
+- The changed feature works as expected
+- Existing features are not broken
+- Use cheat codes to jump to the relevant level quickly
+
+### Unit Tests
+Every game must have a `tests.js` file with unit tests for:
+- Game logic functions (collision detection, math questions, score updates)
+- Boss/enemy behavior state machines
+- Any new mechanic added
+
+Run tests with:
+```bash
+node dragons_vs_warden/tests.js
+```
+
+Tests should use Node.js (no test framework needed — simple assertions with `console.assert` or a tiny helper).
+
+---
+
 ## Development Workflow
 
 ### Running Games
 No build process needed. Simply:
 1. Edit HTML/CSS/JS files
 2. Reload browser (F5 or Cmd+R)
-3. Test and iterate
+3. **Always test in Chrome after changes** (see Testing Requirements above)
 
 ### Creating New Games
 
