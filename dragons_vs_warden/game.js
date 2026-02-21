@@ -20,6 +20,8 @@ let enemyDragonsKilled = 0;
 let dragonBossSpawned = false;
 let skeletonsKilled = 0;
 let skeletonBossSpawned = false;
+let wizardsKilled = 0;
+let wizardBossSpawned = false;
 let continueAttempts = 3;
 let currentMathQuestion = null;
 
@@ -45,7 +47,8 @@ const fireballs = [];
 const wardens = [];
 const enemyDragons = [];
 const skeletons = [];
-const enemyProjectiles = []; // bones and skulls
+const wizards = [];
+const enemyProjectiles = []; // bones, skulls, and magic bolts
 const particles = [];
 const powerUps = [];
 const enemyFire = [];
@@ -57,8 +60,10 @@ const keys = {
     ArrowLeft: false,
     ArrowRight: false,
     ' ': false,
-    p: false
+    n: false
 };
+
+let gamePaused = false;
 
 // Warden types
 const wardenTypes = [
@@ -122,6 +127,12 @@ function powerSound() {
 
 // Event listeners
 document.addEventListener('keydown', (e) => {
+    // Pause works regardless of keys map
+    if (e.key === 'p') {
+        e.preventDefault();
+        togglePause();
+    }
+
     if (e.key in keys) {
         keys[e.key] = true;
 
@@ -130,7 +141,7 @@ document.addEventListener('keydown', (e) => {
             shootFireball();
         }
 
-        if (e.key === 'p' && gameRunning) {
+        if (e.key === 'n' && gameRunning) {
             e.preventDefault();
             activateInvisibility();
         }
@@ -142,6 +153,78 @@ document.addEventListener('keyup', (e) => {
         keys[e.key] = false;
     }
 });
+
+// ===== CHEAT CODE SYSTEM =====
+
+const CHEAT_CODES = {
+    'DRAGON': 2,
+    'SKULL':  3,
+    'WIZARD': 4
+};
+
+const CHEAT_LEVEL_NAMES = {
+    2: 'Level 2 — Enemy Dragons 🐉',
+    3: 'Level 3 — Skeletons 💀',
+    4: 'Level 4 — Dark Wizards 🔮'
+};
+
+function activateCheatZone() {
+    const input = document.getElementById('cheat-input');
+    input.classList.remove('hidden');
+    input.focus();
+}
+
+function checkCheatCode() {
+    const input = document.getElementById('cheat-input');
+    const code = input.value.trim().toUpperCase();
+
+    if (CHEAT_CODES[code] !== undefined) {
+        const level = CHEAT_CODES[code];
+        input.classList.add('hidden');
+        triggerCheatEffect(level);
+    } else {
+        // Wrong code — flash red and clear
+        input.classList.add('wrong');
+        input.value = '';
+        setTimeout(() => input.classList.remove('wrong'), 800);
+    }
+}
+
+function triggerCheatEffect(level) {
+    initAudio();
+    // Rising chime sound
+    playSound(600, 0.12, 'sine');
+    setTimeout(() => playSound(800, 0.12, 'sine'), 140);
+    setTimeout(() => playSound(1000, 0.12, 'sine'), 280);
+    setTimeout(() => playSound(1300, 0.3, 'sine'), 420);
+
+    // Show flash overlay
+    const flash = document.getElementById('cheat-flash');
+    const msg = document.getElementById('cheat-message');
+    msg.innerHTML = `⚡ CHEAT ACTIVATED ⚡<br>${CHEAT_LEVEL_NAMES[level]}`;
+    flash.classList.remove('hidden');
+
+    setTimeout(() => {
+        flash.classList.add('hidden');
+        startAtLevel(level);
+    }, 1800);
+}
+
+function startAtLevel(level) {
+    document.getElementById('instructions').classList.add('hidden');
+    gameRunning = true;
+    initAudio();
+    spawnPowerUps();
+
+    if (level === 2) enterLevel2();
+    else if (level === 3) enterLevel3();
+    else if (level === 4) enterLevel4();
+    else spawnWardens();
+
+    gameLoop();
+}
+
+// ===========================
 
 function startGame() {
     document.getElementById('instructions').classList.add('hidden');
@@ -1233,7 +1316,355 @@ function summonMiniSkeletons() {
     powerSound();
 }
 
-// Update enemy projectiles (bones and skulls)
+// ===== LEVEL 4: DARK WIZARDS =====
+
+function enterLevel4() {
+    currentLevel = 4;
+    door = null;
+    wardensKilled = 0;
+    wardensSpawned = 0;
+    bossSpawned = false;
+    bossDefeated = false;
+    enemyDragonsKilled = 0;
+    dragonBossSpawned = false;
+    skeletonsKilled = 0;
+    skeletonBossSpawned = false;
+    wizardsKilled = 0;
+    wizardBossSpawned = false;
+
+    // Clear existing enemies
+    wardens.length = 0;
+    enemyDragons.length = 0;
+    skeletons.length = 0;
+    enemyFire.length = 0;
+    enemyProjectiles.length = 0;
+
+    spawnWizards();
+    powerSound();
+}
+
+function spawnWizards() {
+    let wizardsSpawned = 0;
+    const maxWizards = 8;
+
+    const spawnInterval = setInterval(() => {
+        if (!gameRunning || currentLevel !== 4) {
+            clearInterval(spawnInterval);
+            return;
+        }
+        if (wizardsSpawned >= maxWizards) {
+            clearInterval(spawnInterval);
+            return;
+        }
+
+        const wizard = {
+            x: Math.random() * (canvas.width - 60),
+            y: -80,
+            width: 55,
+            height: 80,
+            health: 8,
+            maxHealth: 8,
+            speed: 1.8,
+            color: '#9b00ff',
+            points: 35,
+            attackCooldown: 0,
+            boltCooldown: Math.random() * 2000,
+            teleportCooldown: Math.random() * 5000 + 4000,
+            isWizardBoss: false
+        };
+
+        wizards.push(wizard);
+        wizardsSpawned++;
+    }, 1800);
+}
+
+function spawnDarkWizard() {
+    wizardBossSpawned = true;
+
+    const darkWizard = {
+        x: canvas.width / 2 - 60,
+        y: -160,
+        width: 120,
+        height: 160,
+        health: 50,
+        maxHealth: 50,
+        speed: 1.0,
+        color: '#4b0082',
+        points: 300,
+        attackCooldown: 0,
+        boltCooldown: 0,
+        teleportCooldown: 4000,
+        isWizardBoss: true,
+        hasSummonedHelpers: false
+    };
+
+    wizards.push(darkWizard);
+    damageSound();
+}
+
+function updateWizards() {
+    for (let i = wizards.length - 1; i >= 0; i--) {
+        const wizard = wizards[i];
+
+        // Move towards player
+        const dx = dragon.x - wizard.x;
+        const dy = dragon.y - wizard.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        // Wizards keep their distance and cast spells
+        const preferredDistance = wizard.isWizardBoss ? 200 : 160;
+        if (distance > preferredDistance) {
+            wizard.x += (dx / distance) * wizard.speed;
+            wizard.y += (dy / distance) * wizard.speed;
+        } else if (distance < preferredDistance - 40) {
+            wizard.x -= (dx / distance) * wizard.speed;
+            wizard.y -= (dy / distance) * wizard.speed;
+        }
+
+        // Melee if very close
+        wizard.attackCooldown -= 16;
+        if (distance < 60 && wizard.attackCooldown <= 0 && !dragon.invisible) {
+            lives--;
+            wizard.attackCooldown = 1500;
+            damageSound();
+            updateLives();
+            createParticles(dragon.x, dragon.y, '#aa00ff', 10);
+            if (lives <= 0) gameOver();
+        }
+
+        // Cast magic bolts
+        wizard.boltCooldown -= 16;
+        if (wizard.boltCooldown <= 0) {
+            castMagicBolt(wizard);
+            wizard.boltCooldown = wizard.isWizardBoss ? 1800 : 2800;
+        }
+
+        // Teleport
+        wizard.teleportCooldown -= 16;
+        if (wizard.teleportCooldown <= 0 && !wizard.isWizardBoss) {
+            createParticles(wizard.x + wizard.width/2, wizard.y + wizard.height/2, '#9b00ff', 15);
+            wizard.x = Math.random() * (canvas.width - wizard.width - 40) + 20;
+            wizard.y = Math.random() * (canvas.height / 2 - 40) + 20;
+            createParticles(wizard.x + wizard.width/2, wizard.y + wizard.height/2, '#9b00ff', 15);
+            wizard.teleportCooldown = Math.random() * 3000 + 4000;
+            powerSound();
+        }
+
+        // Dark Wizard summons helpers at 50% health
+        if (wizard.isWizardBoss && wizard.health <= 25 && !wizard.hasSummonedHelpers) {
+            wizard.hasSummonedHelpers = true;
+            summonMiniWizards();
+        }
+
+        // Check collision with fireballs
+        for (let j = fireballs.length - 1; j >= 0; j--) {
+            const fireball = fireballs[j];
+            const dist = Math.sqrt(
+                Math.pow(fireball.x - (wizard.x + wizard.width / 2), 2) +
+                Math.pow(fireball.y - (wizard.y + wizard.height / 2), 2)
+            );
+
+            if (dist < fireball.radius + 28) {
+                // 20% chance for regular wizards to blink-dodge
+                if (!wizard.isWizardBoss && Math.random() < 0.2) {
+                    createParticles(wizard.x + 27, wizard.y + 40, '#9b00ff', 5);
+                    powerSound();
+                    fireballs.splice(j, 1);
+                    break;
+                }
+
+                wizard.health -= fireball.damage;
+                fireballs.splice(j, 1);
+                hitSound();
+                createParticles(wizard.x + wizard.width/2, wizard.y + wizard.height/2, '#9b00ff', 5);
+
+                if (wizard.health <= 0) {
+                    score += wizard.points;
+                    updateScore();
+                    killSound();
+                    createParticles(wizard.x + wizard.width/2, wizard.y + wizard.height/2, '#ff00ff', 25);
+
+                    if (wizard.isWizardBoss) {
+                        // Dark Wizard defeated — YOU WIN!
+                        createParticles(wizard.x + wizard.width/2, wizard.y + wizard.height/2, '#ffd700', 150);
+                        wizards.splice(i, 1);
+                        setTimeout(() => { victory(); }, 1500);
+                    } else {
+                        wizardsKilled++;
+                        wizards.splice(i, 1);
+
+                        if (wizardsKilled >= 8 && !wizardBossSpawned) {
+                            setTimeout(() => { spawnDarkWizard(); }, 2000);
+                        }
+                    }
+                }
+                break;
+            }
+        }
+    }
+}
+
+function castMagicBolt(wizard) {
+    const centerX = wizard.x + wizard.width / 2;
+    const centerY = wizard.y + wizard.height / 2;
+
+    if (wizard.isWizardBoss) {
+        // Boss fires 5 bolts in a spread
+        for (let i = -2; i <= 2; i++) {
+            enemyProjectiles.push({
+                x: centerX,
+                y: centerY,
+                width: 20,
+                height: 20,
+                speed: 4,
+                damage: 2,
+                dx: (dragon.x + i * 80 - centerX) / 100,
+                dy: (dragon.y - centerY) / 100,
+                type: 'magicBolt',
+                isBoss: true,
+                rotation: 0
+            });
+        }
+    } else {
+        // Regular wizards fire 1 aimed bolt
+        enemyProjectiles.push({
+            x: centerX,
+            y: centerY,
+            width: 14,
+            height: 14,
+            speed: 5,
+            damage: 1,
+            dx: (dragon.x - centerX) / 100,
+            dy: (dragon.y - centerY) / 100,
+            type: 'magicBolt',
+            isBoss: false,
+            rotation: 0
+        });
+    }
+    shootSound();
+}
+
+function summonMiniWizards() {
+    for (let i = 0; i < 3; i++) {
+        const miniWizard = {
+            x: Math.random() * (canvas.width - 50),
+            y: -80,
+            width: 45,
+            height: 65,
+            health: 5,
+            maxHealth: 5,
+            speed: 2.5,
+            color: '#cc44ff',
+            points: 20,
+            attackCooldown: 0,
+            boltCooldown: Math.random() * 1500,
+            teleportCooldown: Math.random() * 3000 + 3000,
+            isWizardBoss: false
+        };
+        wizards.push(miniWizard);
+    }
+    powerSound();
+}
+
+function drawWizards() {
+    wizards.forEach(wizard => {
+        const cx = wizard.x + wizard.width / 2;
+        const cy = wizard.y;
+        const isBoss = wizard.isWizardBoss;
+        const s = isBoss ? 1 : 0.7; // scale factor
+
+        // Robe body
+        ctx.fillStyle = wizard.color;
+        ctx.beginPath();
+        ctx.moveTo(cx - 28 * s, cy + 80 * s);
+        ctx.lineTo(cx - 20 * s, cy + 30 * s);
+        ctx.lineTo(cx + 20 * s, cy + 30 * s);
+        ctx.lineTo(cx + 28 * s, cy + 80 * s);
+        ctx.closePath();
+        ctx.fill();
+
+        // Head
+        ctx.fillStyle = '#f4c98c';
+        ctx.beginPath();
+        ctx.arc(cx, cy + 20 * s, 14 * s, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Eyes (glowing purple)
+        ctx.fillStyle = '#cc00ff';
+        ctx.shadowBlur = 8;
+        ctx.shadowColor = '#cc00ff';
+        ctx.beginPath();
+        ctx.arc(cx - 5 * s, cy + 18 * s, 3 * s, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(cx + 5 * s, cy + 18 * s, 3 * s, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        // Wizard hat
+        ctx.fillStyle = isBoss ? '#1a0040' : '#2a0060';
+        ctx.beginPath();
+        ctx.moveTo(cx - 20 * s, cy + 8 * s);
+        ctx.lineTo(cx + 20 * s, cy + 8 * s);
+        ctx.lineTo(cx, cy - 35 * s);
+        ctx.closePath();
+        ctx.fill();
+
+        // Hat brim
+        ctx.fillStyle = isBoss ? '#2a0060' : '#3a0080';
+        ctx.fillRect(cx - 22 * s, cy + 6 * s, 44 * s, 6 * s);
+
+        // Hat star
+        ctx.fillStyle = '#ffd700';
+        ctx.font = `${Math.round(12 * s)}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.fillText('★', cx, cy - 5 * s);
+
+        // Staff
+        ctx.strokeStyle = '#8b4513';
+        ctx.lineWidth = 3 * s;
+        ctx.beginPath();
+        ctx.moveTo(cx + 18 * s, cy + 30 * s);
+        ctx.lineTo(cx + 22 * s, cy + 80 * s);
+        ctx.stroke();
+
+        // Staff orb
+        ctx.fillStyle = '#cc00ff';
+        ctx.shadowBlur = 12;
+        ctx.shadowColor = '#cc00ff';
+        ctx.beginPath();
+        ctx.arc(cx + 18 * s, cy + 25 * s, 8 * s, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        // Health bar
+        const barW = wizard.width + 10;
+        const barX = wizard.x - 5;
+        const barY = wizard.y - 12;
+        ctx.fillStyle = '#333';
+        ctx.fillRect(barX, barY, barW, 6);
+        ctx.fillStyle = isBoss ? '#ff00ff' : '#9b00ff';
+        ctx.fillRect(barX, barY, barW * (wizard.health / wizard.maxHealth), 6);
+
+        // Crown for Dark Wizard boss
+        if (isBoss) {
+            const crownY = cy - 40;
+            ctx.fillStyle = '#ffd700';
+            ctx.beginPath();
+            ctx.moveTo(cx - 20, crownY + 15);
+            ctx.lineTo(cx - 15, crownY);
+            ctx.lineTo(cx - 7, crownY + 10);
+            ctx.lineTo(cx, crownY - 8);
+            ctx.lineTo(cx + 7, crownY + 10);
+            ctx.lineTo(cx + 15, crownY);
+            ctx.lineTo(cx + 20, crownY + 15);
+            ctx.closePath();
+            ctx.fill();
+        }
+    });
+}
+
+// Update enemy projectiles (bones, skulls, and magic bolts)
 function updateEnemyProjectiles() {
     for (let i = enemyProjectiles.length - 1; i >= 0; i--) {
         const proj = enemyProjectiles[i];
@@ -1411,6 +1842,20 @@ function drawEnemyProjectiles() {
             ctx.beginPath();
             ctx.arc(5, -2, 3, 0, Math.PI * 2);
             ctx.fill();
+        } else if (proj.type === 'magicBolt') {
+            // Draw magic bolt (glowing star)
+            const color = proj.isBoss ? '#ff00ff' : '#aa00ff';
+            ctx.shadowBlur = 12;
+            ctx.shadowColor = color;
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(0, 0, proj.isBoss ? 10 : 7, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(0, 0, proj.isBoss ? 4 : 3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
         }
 
         ctx.restore();
@@ -1587,6 +2032,15 @@ function applyPowerUp(type) {
     }
 }
 
+// Pause
+function togglePause() {
+    if (!gameRunning && !gamePaused) return; // don't pause on game over screen
+    gamePaused = !gamePaused;
+    if (!gamePaused) {
+        gameLoop(); // resume
+    }
+}
+
 // Invisibility
 function activateInvisibility() {
     if (dragon.invisibleCooldown <= 0) {
@@ -1614,9 +2068,9 @@ function updatePowerStatus() {
     if (dragon.invisible) {
         status += '👻 INVISIBLE';
     } else if (dragon.invisibleCooldown > 0) {
-        status += `P cooldown: ${Math.ceil(dragon.invisibleCooldown / 1000)}s`;
+        status += `N cooldown: ${Math.ceil(dragon.invisibleCooldown / 1000)}s`;
     } else {
-        status += 'P: Ready!';
+        status += 'N: Ready! | P: Pause';
     }
 
     statusEl.textContent = status;
@@ -1746,6 +2200,19 @@ function victory() {
 // Game loop
 function gameLoop() {
     if (!gameRunning) return;
+    if (gamePaused) {
+        // Draw pause overlay and stop the loop
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#ffd700';
+        ctx.font = 'bold 64px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('⏸ PAUSED', canvas.width / 2, canvas.height / 2 - 20);
+        ctx.font = '28px Arial';
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText('Press P to continue', canvas.width / 2, canvas.height / 2 + 40);
+        return;
+    }
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -1754,6 +2221,7 @@ function gameLoop() {
     updateWardens();
     updateEnemyDragons();
     updateSkeletons();
+    updateWizards();
     updateParticles();
     updatePowerUps();
     updateEnemyFire();
@@ -1764,6 +2232,7 @@ function gameLoop() {
     drawWardens();
     drawEnemyDragons();
     drawSkeletons();
+    drawWizards();
     drawFireballs();
     drawEnemyFire();
     drawEnemyProjectiles();

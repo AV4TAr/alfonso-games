@@ -41,12 +41,18 @@
             <h2>Controls:</h2>
             <p>⬆️⬇️⬅️➡️ Arrow Keys - Move Dragon</p>
             <p>SPACEBAR - Shoot Fireball</p>
-            <p>P - Turn Invisible</p>
+            <p>N - Turn Invisible</p>
+            <p>P - Pause Game</p>
             <p><br><strong>Level 1:</strong> Kill 5 wardens + BOSS WARDEN 👑</p>
             <p><strong>Level 2:</strong> Defeat 5 enemy dragons + DRAGON BOSS 👑</p>
             <p><strong>Level 3:</strong> Destroy 7 skeletons + SKELETON KING 💀👑</p>
-            <p><strong>Level 4:</strong> Coming soon...</p>
+            <p><strong>Level 4:</strong> Defeat 8 wizards + DARK WIZARD 🔮👑</p>
             <button onclick="startGame()">Start Game</button>
+            <div id="cheat-zone" onclick="activateCheatZone()">🔮</div>
+            <input type="text" id="cheat-input" class="hidden" placeholder="enter code..." maxlength="20" autocomplete="off" spellcheck="false">
+        </div>
+        <div id="cheat-flash" class="hidden">
+            <span id="cheat-message"></span>
         </div>
     </div>
     <script src="game.js"></script>
@@ -57,6 +63,14 @@
             mathInput.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') {
                     checkMathAnswer();
+                }
+            });
+
+            // Allow Enter key to submit cheat code
+            const cheatInput = document.getElementById('cheat-input');
+            cheatInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    checkCheatCode();
                 }
             });
         });

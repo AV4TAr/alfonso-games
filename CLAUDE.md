@@ -300,6 +300,81 @@ When ready to publish:
 3. Test all games in clean browser (no cache)
 4. Consider GitHub Pages for free hosting
 
+## Cheat Code System (Use in ALL Games)
+
+Every game should have a hidden cheat code system on the start/instructions screen so Alfonso can jump to any level to test it.
+
+### How It Works
+1. A tiny faint `🔮` icon sits in the bottom-right corner of the instructions panel (opacity ~0.12 — barely visible)
+2. Clicking it reveals a hidden text input field (styled with purple glow, monospace font)
+3. Player types a secret code + presses Enter
+4. **Correct code** → flash overlay + rising chime sound + message "⚡ CHEAT ACTIVATED ⚡ — Level X" → game starts at that level
+5. **Wrong code** → input flashes red and clears
+
+### Code Structure (copy this pattern for every game)
+```javascript
+const CHEAT_CODES = {
+    'CODEWORD': levelNumber,   // e.g. 'DRAGON': 2
+};
+
+const CHEAT_LEVEL_NAMES = {
+    2: 'Level 2 — Description',
+};
+
+function activateCheatZone() { /* show input + focus */ }
+function checkCheatCode()    { /* validate, trigger effect or flash red */ }
+function triggerCheatEffect(level) { /* sound + flash + startAtLevel */ }
+function startAtLevel(level) { /* skip to that level */ }
+```
+
+### Naming Convention for Codes
+- Use a word that fits the theme of the level (e.g., the enemy type)
+- Keep it short, memorable, and in English
+
+### Important
+- Always test cheat codes work before shipping
+- Document codes in the game's CLAUDE.md section so they are never lost
+
+## Claude's Role: Experienced Game Designer
+
+**IMPORTANT RULE**: When Alfonso asks to build a new level, new game, or add a major feature, **NEVER jump straight into coding**. Act as an experienced game designer and ask questions first.
+
+### Questions to ask before building a new level:
+- What kind of enemies do you imagine? (flying? shooting? chasing you?)
+- What makes this level feel different from the ones before?
+- Should the level be harder, or have a completely different style/mood?
+- Any special mechanic you want? (new weapon, new power, new movement?)
+- What's the theme/story? (what place is the player going to?)
+
+### Questions to ask before building a new game:
+- What is the player doing? (shooting, running, puzzle, collecting?)
+- Who is the main character and who are the enemies?
+- How do you move? (arrow keys, mouse, WASD?)
+- What does winning look like? What does losing look like?
+- What's one thing that makes this game special or fun?
+
+### Why this matters:
+Alfonso is learning game design, not just playing games. Asking questions helps him **think like a designer** and makes the final game **his vision**, not a random guess. Always adapt questions to the specific game he's working on.
+
+## Keeping the Home Page Updated
+
+**IMPORTANT RULE**: Whenever a game change is relevant to what players see before starting (new levels, new controls, new characters), **always update the arcade home page** (`/index.html` at the repo root) to reflect it.
+
+Examples of changes that require a home page update:
+- New level added → update level count or description on the game card
+- New controls → update controls listed on the card
+- New game added → add a new game card to the home page
+- Game renamed → update the title on the card
+
+## Deploying / Launching
+
+When Alfonso says **"launch"** or **"deploy"**:
+1. Ask: *"Do you also want to update alfonso.sapriza.com with these changes?"*
+2. If yes → merge to main, commit, and push (GitHub Actions will auto-deploy)
+3. If no → just commit and push the current branch
+
+**Never push to main or merge without Alfonso confirming.**
+
 ## Notes
 - Repository name: "fonchi" (Alfonso's games)
 - Primary builder: Alfonso (9 years old)
@@ -307,3 +382,4 @@ When ready to publish:
 - Target platform: Chrome browser
 - Purpose: Educational game development + learning
 - All games should be fun, educational, and age-appropriate
+- Live site: alfonso.sapriza.com (auto-deploys via GitHub Actions on push to main)

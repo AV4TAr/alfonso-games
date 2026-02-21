@@ -161,3 +161,75 @@ button:active {
     font-size: 36px;
     font-weight: bold;
 }
+
+/* Cheat code system */
+#cheat-zone {
+    position: absolute;
+    bottom: 12px;
+    right: 16px;
+    font-size: 11px;
+    opacity: 0.12;
+    cursor: pointer;
+    user-select: none;
+    transition: opacity 0.3s;
+}
+
+#cheat-zone:hover {
+    opacity: 0.3;
+}
+
+#cheat-input {
+    margin-top: 14px;
+    background: rgba(155, 0, 255, 0.08);
+    border: 1px solid rgba(155, 0, 255, 0.35);
+    border-radius: 8px;
+    color: #cc88ff;
+    font-size: 15px;
+    padding: 7px 14px;
+    text-align: center;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    outline: none;
+    width: 190px;
+    font-family: monospace;
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+#cheat-input:focus {
+    border-color: #9b00ff;
+    box-shadow: 0 0 12px rgba(155, 0, 255, 0.45);
+}
+
+#cheat-input.wrong {
+    border-color: #ff4757;
+    box-shadow: 0 0 10px rgba(255, 71, 87, 0.5);
+}
+
+#cheat-flash {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(80, 0, 180, 0.92);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    border-radius: 6px;
+    animation: cheatFadeOut 1.8s ease-out forwards;
+}
+
+#cheat-message {
+    font-size: 30px;
+    font-weight: bold;
+    color: #ffd700;
+    text-shadow: 0 0 20px #ffd700, 0 0 40px #ffaa00;
+    text-align: center;
+    line-height: 1.6;
+    padding: 20px;
+}
+
+@keyframes cheatFadeOut {
+    0%   { opacity: 0; }
+    15%  { opacity: 1; }
+    75%  { opacity: 1; }
+    100% { opacity: 0; }
+}
