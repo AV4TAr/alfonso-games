@@ -22,6 +22,8 @@ let skeletonsKilled = 0;
 let skeletonBossSpawned = false;
 let wizardsKilled = 0;
 let wizardBossSpawned = false;
+let eelsKilled = 0;
+let jellyfishBossSpawned = false;
 let continueAttempts = 3;
 let currentMathQuestion = null;
 
@@ -48,7 +50,8 @@ const wardens = [];
 const enemyDragons = [];
 const skeletons = [];
 const wizards = [];
-const enemyProjectiles = []; // bones, skulls, and magic bolts
+const eels = [];
+const enemyProjectiles = []; // bones, skulls, magic bolts, and electric bolts
 const particles = [];
 const powerUps = [];
 const enemyFire = [];
@@ -159,13 +162,15 @@ document.addEventListener('keyup', (e) => {
 const CHEAT_CODES = {
     'DRAGON': 2,
     'SKULL':  3,
-    'WIZARD': 4
+    'WIZARD': 4,
+    'EEL':    5
 };
 
 const CHEAT_LEVEL_NAMES = {
     2: 'Level 2 — Enemy Dragons 🐉',
     3: 'Level 3 — Skeletons 💀',
-    4: 'Level 4 — Dark Wizards 🔮'
+    4: 'Level 4 — Dark Wizards 🔮',
+    5: 'Level 5 — Electric Eels ⚡'
 };
 
 function activateCheatZone() {
@@ -219,6 +224,7 @@ function startAtLevel(level) {
     if (level === 2) enterLevel2();
     else if (level === 3) enterLevel3();
     else if (level === 4) enterLevel4();
+    else if (level === 5) enterLevel5();
     else spawnWardens();
 
     gameLoop();
@@ -769,7 +775,9 @@ function drawDoor() {
             } else if (currentLevel === 2) {
                 enterLevel3();
             } else if (currentLevel === 3) {
-                enterLevel4(); // Will create this next!
+                enterLevel4();
+            } else if (currentLevel === 4) {
+                enterLevel5();
             }
         }
     }
@@ -1485,10 +1493,15 @@ function updateWizards() {
                     createParticles(wizard.x + wizard.width/2, wizard.y + wizard.height/2, '#ff00ff', 25);
 
                     if (wizard.isWizardBoss) {
-                        // Dark Wizard defeated — YOU WIN!
+                        // Dark Wizard defeated — spawn door to Level 5!
                         createParticles(wizard.x + wizard.width/2, wizard.y + wizard.height/2, '#ffd700', 150);
                         wizards.splice(i, 1);
-                        setTimeout(() => { victory(); }, 1500);
+                        door = {
+                            x: canvas.width / 2 - 40,
+                            y: canvas.height / 2 - 60,
+                            width: 80,
+                            height: 120
+                        };
                     } else {
                         wizardsKilled++;
                         wizards.splice(i, 1);
@@ -1664,7 +1677,393 @@ function drawWizards() {
     });
 }
 
-// Update enemy projectiles (bones, skulls, and magic bolts)
+// ===== LEVEL 5: ELECTRIC EELS =====
+
+function enterLevel5() {
+    currentLevel = 5;
+    door = null;
+    wardensKilled = 0; wardensSpawned = 0;
+    bossSpawned = false; bossDefeated = false;
+    enemyDragonsKilled = 0; dragonBossSpawned = false;
+    skeletonsKilled = 0; skeletonBossSpawned = false;
+    wizardsKilled = 0; wizardBossSpawned = false;
+    eelsKilled = 0; jellyfishBossSpawned = false;
+
+    wardens.length = 0;
+    enemyDragons.length = 0;
+    skeletons.length = 0;
+    wizards.length = 0;
+    eels.length = 0;
+    enemyFire.length = 0;
+    enemyProjectiles.length = 0;
+
+    spawnEels();
+    powerSound();
+}
+
+function spawnEels() {
+    let eelsSpawned = 0;
+    const maxEels = 8;
+
+    const spawnInterval = setInterval(() => {
+        if (!gameRunning || currentLevel !== 5) { clearInterval(spawnInterval); return; }
+        if (eelsSpawned >= maxEels) { clearInterval(spawnInterval); return; }
+
+        // Eels enter from the sides
+        const fromLeft = Math.random() < 0.5;
+        const eel = {
+            x: fromLeft ? -90 : canvas.width + 90,
+            y: Math.random() * (canvas.height - 100) + 50,
+            width: 90,
+            height: 22,
+            health: 6,
+            maxHealth: 6,
+            speed: 0.9,
+            points: 40,
+            boltCooldown: Math.random() * 2000 + 1500,
+            hasBeenHit: false,
+            zigzagTimer: 0,
+            zigzagTargetX: 0,
+            zigzagTargetY: 0,
+            angle: Math.random() * Math.PI * 2,
+            isJellyfishBoss: false
+        };
+
+        eels.push(eel);
+        eelsSpawned++;
+    }, 2000);
+}
+
+function spawnJellyfish() {
+    jellyfishBossSpawned = true;
+
+    const jellyfish = {
+        x: canvas.width / 2 - 70,
+        y: -160,
+        width: 140,
+        height: 130,
+        health: 60,
+        maxHealth: 60,
+        speed: 0.7,
+        points: 350,
+        boltCooldown: 0,
+        hasBeenHit: false,
+        zigzagTimer: 0,
+        zigzagTargetX: 0,
+        zigzagTargetY: 0,
+        pulseTimer: 0,
+        angle: 0,
+        isJellyfishBoss: true
+    };
+
+    eels.push(jellyfish);
+    damageSound();
+}
+
+function updateEels() {
+    for (let i = eels.length - 1; i >= 0; i--) {
+        const eel = eels[i];
+
+        eel.angle += 0.05;
+        if (eel.isJellyfishBoss) eel.pulseTimer += 0.05;
+
+        const dx = (dragon.x + dragon.width / 2) - (eel.x + eel.width / 2);
+        const dy = (dragon.y + dragon.height / 2) - (eel.y + eel.height / 2);
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (eel.zigzagTimer > 0) {
+            // Zigzag away from fire — fast burst to random spot
+            const zdx = eel.zigzagTargetX - eel.x;
+            const zdy = eel.zigzagTargetY - eel.y;
+            const zdist = Math.sqrt(zdx * zdx + zdy * zdy);
+            if (zdist > 10) {
+                const spd = eel.isJellyfishBoss ? 3.5 : 5;
+                eel.x += (zdx / zdist) * spd;
+                eel.y += (zdy / zdist) * spd;
+            }
+            eel.zigzagTimer -= 16;
+        } else {
+            // Normal: orbit at preferred distance, never get too close
+            const preferred = eel.isJellyfishBoss ? 260 : 210;
+            if (distance > preferred + 20) {
+                eel.x += (dx / distance) * eel.speed;
+                eel.y += (dy / distance) * eel.speed;
+            } else if (distance < preferred - 20) {
+                eel.x -= (dx / distance) * eel.speed;
+                eel.y -= (dy / distance) * eel.speed;
+            } else {
+                // Orbit slowly around the dragon
+                const perpX = -dy / distance;
+                const perpY = dx / distance;
+                eel.x += perpX * eel.speed * 0.6;
+                eel.y += perpY * eel.speed * 0.6;
+            }
+        }
+
+        // Shoot electricity
+        eel.boltCooldown -= 16;
+        if (eel.boltCooldown <= 0) {
+            shootElectricBolt(eel);
+            eel.boltCooldown = eel.isJellyfishBoss ? 1500 : 3000;
+        }
+
+        // Check fireball collision
+        for (let j = fireballs.length - 1; j >= 0; j--) {
+            const fireball = fireballs[j];
+            const dist = Math.sqrt(
+                Math.pow(fireball.x - (eel.x + eel.width / 2), 2) +
+                Math.pow(fireball.y - (eel.y + eel.height / 2), 2)
+            );
+
+            if (dist < fireball.radius + (eel.isJellyfishBoss ? 60 : 22)) {
+                eel.health -= fireball.damage;
+                fireballs.splice(j, 1);
+                hitSound();
+                createParticles(eel.x + eel.width / 2, eel.y + eel.height / 2, '#00ffff', 6);
+
+                // First hit: zigzag away immediately, then back to normal
+                if (!eel.hasBeenHit) {
+                    eel.hasBeenHit = true;
+                    const angle = Math.random() * Math.PI * 2;
+                    const dist2 = 160 + Math.random() * 120;
+                    eel.zigzagTargetX = Math.max(60, Math.min(canvas.width - 60, eel.x + Math.cos(angle) * dist2));
+                    eel.zigzagTargetY = Math.max(60, Math.min(canvas.height - 60, eel.y + Math.sin(angle) * dist2));
+                    eel.zigzagTimer = 700;
+                }
+
+                if (eel.health <= 0) {
+                    score += eel.points;
+                    updateScore();
+                    killSound();
+                    createParticles(eel.x + eel.width / 2, eel.y + eel.height / 2, '#00ffff', 25);
+
+                    if (eel.isJellyfishBoss) {
+                        createParticles(eel.x + eel.width / 2, eel.y + eel.height / 2, '#ffd700', 150);
+                        eels.splice(i, 1);
+                        setTimeout(() => { victory(); }, 1500);
+                    } else {
+                        eelsKilled++;
+                        eels.splice(i, 1);
+                        if (eelsKilled >= 8 && !jellyfishBossSpawned) {
+                            setTimeout(() => { spawnJellyfish(); }, 2000);
+                        }
+                    }
+                }
+                break;
+            }
+        }
+    }
+}
+
+function shootElectricBolt(eel) {
+    const cx = eel.x + eel.width / 2;
+    const cy = eel.y + eel.height / 2;
+
+    if (eel.isJellyfishBoss) {
+        // Boss fires 4 spread bolts
+        for (let i = -1; i <= 2; i++) {
+            enemyProjectiles.push({
+                x: cx, y: cy,
+                speed: 4.5, damage: 2,
+                dx: (dragon.x + i * 60 - cx) / 100,
+                dy: (dragon.y - cy) / 100,
+                type: 'electricBolt', isBoss: true, rotation: 0
+            });
+        }
+    } else {
+        enemyProjectiles.push({
+            x: cx, y: cy,
+            speed: 4, damage: 1,
+            dx: (dragon.x - cx) / 100,
+            dy: (dragon.y - cy) / 100,
+            type: 'electricBolt', isBoss: false, rotation: 0
+        });
+    }
+    shootSound();
+}
+
+function drawEels() {
+    if (currentLevel === 5) {
+        // Underwater blue tint overlay
+        ctx.fillStyle = 'rgba(0, 30, 80, 0.35)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Floating bubbles effect
+        if (Math.random() < 0.4) {
+            createParticles(
+                Math.random() * canvas.width,
+                canvas.height,
+                'rgba(100, 200, 255, 0.6)',
+                1
+            );
+        }
+    }
+
+    eels.forEach(eel => {
+        if (eel.isJellyfishBoss) {
+            drawJellyfish(eel);
+        } else {
+            drawEel(eel);
+        }
+    });
+}
+
+function drawEel(eel) {
+    const cx = eel.x + eel.width / 2;
+    const cy = eel.y + eel.height / 2;
+    const t = eel.angle;
+
+    ctx.save();
+    ctx.shadowBlur = 14;
+    ctx.shadowColor = '#00ffcc';
+
+    // Body — wavy segments
+    ctx.strokeStyle = eel.hasBeenHit ? '#00ffaa' : '#00cc88';
+    ctx.lineWidth = 11;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    for (let s = 1; s <= 6; s++) {
+        ctx.lineTo(cx - s * 13, cy + Math.sin(t + s * 0.9) * 9);
+    }
+    ctx.stroke();
+
+    // Head
+    ctx.fillStyle = '#00aa66';
+    ctx.beginPath();
+    ctx.arc(cx, cy, 13, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Eye
+    ctx.fillStyle = '#ffff00';
+    ctx.shadowColor = '#ffff00';
+    ctx.shadowBlur = 6;
+    ctx.beginPath();
+    ctx.arc(cx + 5, cy - 4, 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#000';
+    ctx.shadowBlur = 0;
+    ctx.beginPath();
+    ctx.arc(cx + 6, cy - 4, 2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Random spark
+    if (Math.random() < 0.25) {
+        ctx.strokeStyle = '#ffff00';
+        ctx.lineWidth = 1.5;
+        ctx.shadowColor = '#ffff00';
+        ctx.shadowBlur = 8;
+        const sx = cx + (Math.random() - 0.5) * 50;
+        const sy = cy + (Math.random() - 0.5) * 15;
+        ctx.beginPath();
+        ctx.moveTo(sx, sy);
+        ctx.lineTo(sx + (Math.random() - 0.5) * 14, sy + (Math.random() - 0.5) * 14);
+        ctx.stroke();
+    }
+
+    // Health bar
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#333';
+    ctx.fillRect(eel.x - 5, eel.y - 18, eel.width + 10, 5);
+    ctx.fillStyle = '#00ffcc';
+    ctx.fillRect(eel.x - 5, eel.y - 18, (eel.width + 10) * (eel.health / eel.maxHealth), 5);
+
+    ctx.restore();
+}
+
+function drawJellyfish(jelly) {
+    const cx = jelly.x + jelly.width / 2;
+    const cy = jelly.y + jelly.height / 2;
+    const pulse = Math.sin(jelly.pulseTimer) * 8;
+
+    ctx.save();
+    ctx.shadowBlur = 25;
+    ctx.shadowColor = '#00ffff';
+
+    // Bell dome (pulsing)
+    const bw = 65 + pulse;
+    const bh = 50 + pulse * 0.5;
+    ctx.fillStyle = 'rgba(0, 180, 255, 0.7)';
+    ctx.beginPath();
+    ctx.ellipse(cx, cy - 20, bw, bh, 0, Math.PI, 0);
+    ctx.fill();
+
+    // Inner glow
+    ctx.fillStyle = 'rgba(150, 255, 255, 0.35)';
+    ctx.beginPath();
+    ctx.ellipse(cx, cy - 28, bw * 0.55, bh * 0.55, 0, Math.PI, 0);
+    ctx.fill();
+
+    // Tentacles
+    for (let t = 0; t < 6; t++) {
+        const tx = cx - bw * 0.8 + (t / 5) * bw * 1.6;
+        const wave = Math.sin(jelly.pulseTimer + t * 0.8) * 20;
+        ctx.strokeStyle = 'rgba(0, 200, 255, 0.8)';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(tx, cy + 20);
+        ctx.bezierCurveTo(tx + wave, cy + 50, tx - wave, cy + 80, tx + wave * 0.5, cy + 115);
+        ctx.stroke();
+
+        // Electric sparks on tentacles
+        if (Math.random() < 0.2) {
+            ctx.strokeStyle = '#ffff00';
+            ctx.lineWidth = 1.5;
+            ctx.shadowColor = '#ffff00';
+            ctx.beginPath();
+            ctx.moveTo(tx + wave, cy + 55);
+            ctx.lineTo(tx + wave + (Math.random() - 0.5) * 18, cy + 65);
+            ctx.stroke();
+        }
+    }
+
+    // Eyes
+    ctx.shadowColor = '#ffff00';
+    ctx.shadowBlur = 10;
+    ctx.fillStyle = '#ffff00';
+    ctx.beginPath();
+    ctx.arc(cx - 20, cy - 30, 7, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(cx + 20, cy - 30, 7, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#000';
+    ctx.shadowBlur = 0;
+    ctx.beginPath();
+    ctx.arc(cx - 20, cy - 30, 3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(cx + 20, cy - 30, 3, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Crown
+    const crownY = cy - 75 - pulse * 0.3;
+    ctx.fillStyle = '#ffd700';
+    ctx.shadowColor = '#ffd700';
+    ctx.shadowBlur = 8;
+    ctx.beginPath();
+    ctx.moveTo(cx - 25, crownY + 15);
+    ctx.lineTo(cx - 18, crownY);
+    ctx.lineTo(cx - 9, crownY + 11);
+    ctx.lineTo(cx, crownY - 8);
+    ctx.lineTo(cx + 9, crownY + 11);
+    ctx.lineTo(cx + 18, crownY);
+    ctx.lineTo(cx + 25, crownY + 15);
+    ctx.closePath();
+    ctx.fill();
+
+    // Health bar
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#333';
+    ctx.fillRect(jelly.x - 5, jelly.y - 20, jelly.width + 10, 7);
+    ctx.fillStyle = '#00ffff';
+    ctx.fillRect(jelly.x - 5, jelly.y - 20, (jelly.width + 10) * (jelly.health / jelly.maxHealth), 7);
+
+    ctx.restore();
+}
+
+// Update enemy projectiles (bones, skulls, magic bolts, and electric bolts)
 function updateEnemyProjectiles() {
     for (let i = enemyProjectiles.length - 1; i >= 0; i--) {
         const proj = enemyProjectiles[i];
@@ -1842,6 +2241,25 @@ function drawEnemyProjectiles() {
             ctx.beginPath();
             ctx.arc(5, -2, 3, 0, Math.PI * 2);
             ctx.fill();
+        } else if (proj.type === 'electricBolt') {
+            // Draw electric bolt (jagged lightning shape)
+            const color = proj.isBoss ? '#ffff00' : '#00ffff';
+            ctx.shadowBlur = 14;
+            ctx.shadowColor = color;
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.moveTo(-7, -3);
+            ctx.lineTo(0, -9);
+            ctx.lineTo(2, -1);
+            ctx.lineTo(8, -6);
+            ctx.lineTo(4, 4);
+            ctx.lineTo(8, 4);
+            ctx.lineTo(0, 10);
+            ctx.lineTo(-2, 1);
+            ctx.lineTo(-8, 6);
+            ctx.closePath();
+            ctx.fill();
+            ctx.shadowBlur = 0;
         } else if (proj.type === 'magicBolt') {
             // Draw magic bolt (glowing star)
             const color = proj.isBoss ? '#ff00ff' : '#aa00ff';
@@ -2222,6 +2640,7 @@ function gameLoop() {
     updateEnemyDragons();
     updateSkeletons();
     updateWizards();
+    updateEels();
     updateParticles();
     updatePowerUps();
     updateEnemyFire();
@@ -2233,6 +2652,7 @@ function gameLoop() {
     drawEnemyDragons();
     drawSkeletons();
     drawWizards();
+    drawEels();
     drawFireballs();
     drawEnemyFire();
     drawEnemyProjectiles();
