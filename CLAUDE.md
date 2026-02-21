@@ -327,6 +327,33 @@ When ready to publish:
 3. Test all games in clean browser (no cache)
 4. Consider GitHub Pages for free hosting
 
+## Settings Must Be Persisted in localStorage (MANDATORY)
+
+**IMPORTANT RULE**: Any game that has a settings menu **must** save all settings to `localStorage` so they survive page reloads.
+
+### Pattern to follow
+
+```javascript
+// Load on startup (at the top of game.js with other state variables)
+let mySetting = localStorage.getItem('setting_mySetting') === 'true';
+
+// Save when changed
+function toggleMySetting(enabled) {
+    mySetting = enabled;
+    localStorage.setItem('setting_mySetting', enabled);
+}
+```
+
+```javascript
+// Sync checkbox to saved value on page load (in DOMContentLoaded in index.html)
+document.getElementById('setting-my-setting').checked = mySetting;
+```
+
+### Key naming convention
+Use the prefix `setting_` followed by the camelCase setting name (e.g. `setting_directionalShooting`, `setting_soundEnabled`).
+
+---
+
 ## Cheat Code System (Use in ALL Games)
 
 Every game should have a hidden cheat code system on the start/instructions screen so Alfonso can jump to any level to test it.

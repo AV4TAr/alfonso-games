@@ -252,7 +252,73 @@ for (let angle = 0; angle < Math.PI * 2; angle += 0.3) {
     break; // check one representative angle
 }
 
-// 6. Sound toggle
+// 6. Directional Fireball Math
+section('Directional Fireball Math');
+
+function computeAimDir(dx, dy, prevDir) {
+    if (dx !== 0 || dy !== 0) {
+        const len = Math.sqrt(dx * dx + dy * dy);
+        return { dx: dx / len, dy: dy / len };
+    }
+    return prevDir;
+}
+
+function computeFireballSpawn(dragonX, dragonY, dragonW, dragonH, aimDir) {
+    const cx = dragonX + dragonW / 2;
+    const cy = dragonY + dragonH / 2;
+    return { x: cx + aimDir.dx * 45, y: cy + aimDir.dy * 45 };
+}
+
+// Default: no keys pressed → aim stays up
+const defaultDir = computeAimDir(0, 0, { dx: 0, dy: -1 });
+assert(Math.abs(defaultDir.dx - 0) < 0.001 && Math.abs(defaultDir.dy + 1) < 0.001,
+    'standing still keeps aimDir pointing up');
+
+// Moving right → aim right
+const rightDir = computeAimDir(5, 0, { dx: 0, dy: -1 });
+assert(Math.abs(rightDir.dx - 1) < 0.001 && Math.abs(rightDir.dy) < 0.001,
+    'moving right sets aimDir to (1, 0)');
+
+// Moving left → aim left
+const leftDir = computeAimDir(-5, 0, { dx: 0, dy: -1 });
+assert(Math.abs(leftDir.dx + 1) < 0.001 && Math.abs(leftDir.dy) < 0.001,
+    'moving left sets aimDir to (-1, 0)');
+
+// Moving down → aim down
+const downDir = computeAimDir(0, 5, { dx: 0, dy: -1 });
+assert(Math.abs(downDir.dx) < 0.001 && Math.abs(downDir.dy - 1) < 0.001,
+    'moving down sets aimDir to (0, 1)');
+
+// Diagonal (right+down) → normalized 45°
+const diagDir = computeAimDir(5, 5, { dx: 0, dy: -1 });
+const expectedDiag = 1 / Math.sqrt(2);
+assert(Math.abs(diagDir.dx - expectedDiag) < 0.001 && Math.abs(diagDir.dy - expectedDiag) < 0.001,
+    'diagonal movement normalizes to (√½, √½)');
+
+// Diagonal aim vector has unit length
+const diagLen = Math.sqrt(diagDir.dx * diagDir.dx + diagDir.dy * diagDir.dy);
+assert(Math.abs(diagLen - 1) < 0.001, 'diagonal aimDir has unit length');
+
+// Spawn offset is 45px ahead in aim direction
+const spawn = computeFireballSpawn(100, 100, 80, 70, { dx: 1, dy: 0 });
+assert(Math.abs(spawn.x - 185) < 0.001 && Math.abs(spawn.y - 135) < 0.001,
+    'fireball spawns 45px ahead of dragon center when aiming right');
+
+// Multishot perpendicular: perp of (1,0) is (0,1)
+const aimRight = { dx: 1, dy: 0 };
+const perpDx = -aimRight.dy; // 0
+const perpDy =  aimRight.dx; // 1
+assert(Math.abs(perpDx) < 0.001 && Math.abs(perpDy - 1) < 0.001,
+    'perp of rightward aim is (0, 1) — fans spread up/down');
+
+// Multishot perp is always orthogonal to aim
+const aimDiag = { dx: expectedDiag, dy: expectedDiag };
+const pdx = -aimDiag.dy;
+const pdy =  aimDiag.dx;
+const dotPerp = aimDiag.dx * pdx + aimDiag.dy * pdy;
+assert(Math.abs(dotPerp) < 0.001, 'multishot perp is orthogonal to aim direction');
+
+// 7. Sound toggle
 section('Sound Toggle');
 
 let testSound = true;

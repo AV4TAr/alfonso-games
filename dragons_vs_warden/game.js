@@ -26,6 +26,7 @@ let eelsKilled = 0;
 let jellyfishBossSpawned = false;
 let continueAttempts = 3;
 let currentMathQuestion = null;
+let directionalShooting = localStorage.getItem('setting_directionalShooting') === 'true';
 
 // Player (Dragon)
 const dragon = {
@@ -41,7 +42,8 @@ const dragon = {
     invisibleDuration: 3000, // 3 seconds
     invisibleCooldown: 0,
     bigFireballTimer: 0,
-    doubleBullets: false
+    doubleBullets: false,
+    aimDir: { dx: 0, dy: -1 }  // default: upward
 };
 
 // Arrays
@@ -255,6 +257,12 @@ function updateDragon() {
     if (keys.ArrowUp) dragon.dy = -dragon.speed;
     if (keys.ArrowDown) dragon.dy = dragon.speed;
 
+    if (dragon.dx !== 0 || dragon.dy !== 0) {
+        const len = Math.sqrt(dragon.dx * dragon.dx + dragon.dy * dragon.dy);
+        dragon.aimDir.dx = dragon.dx / len;
+        dragon.aimDir.dy = dragon.dy / len;
+    }
+
     dragon.x += dragon.dx;
     dragon.y += dragon.dy;
 
@@ -390,29 +398,41 @@ function drawDragon() {
 // Fireballs
 function shootFireball() {
     const isBig = dragon.bigFireballTimer > 5000; // Big fireball every 5 seconds
+    let spawnX, spawnY, dx, dy;
 
-    // Center fireball
-    fireballs.push({
-        x: dragon.x + dragon.width / 2,
-        y: dragon.y,
-        radius: isBig ? 15 : 8,
-        speed: 8,
-        damage: isBig ? 5 : 1,
-        isBig: isBig
-    });
-
-    if (isBig) {
-        dragon.bigFireballTimer = 0;
+    if (directionalShooting) {
+        const cx = dragon.x + dragon.width / 2;
+        const cy = dragon.y + dragon.height / 2;
+        spawnX = cx + dragon.aimDir.dx * 45;
+        spawnY = cy + dragon.aimDir.dy * 45;
+        dx = dragon.aimDir.dx;
+        dy = dragon.aimDir.dy;
+    } else {
+        spawnX = dragon.x + dragon.width / 2;
+        spawnY = dragon.y;
+        dx = 0;
+        dy = -1;
     }
 
+    fireballs.push({ x: spawnX, y: spawnY, dx, dy, radius: isBig ? 15 : 8, speed: 8, damage: isBig ? 5 : 1, isBig });
+
+    if (isBig) dragon.bigFireballTimer = 0;
     shootSound();
+}
+
+function toggleDirectionalShooting(enabled) {
+    directionalShooting = enabled;
+    localStorage.setItem('setting_directionalShooting', enabled);
+    if (!enabled) dragon.aimDir = { dx: 0, dy: -1 };
 }
 
 function updateFireballs() {
     for (let i = fireballs.length - 1; i >= 0; i--) {
-        fireballs[i].y -= fireballs[i].speed;
-
-        if (fireballs[i].y < 0) {
+        const fb = fireballs[i];
+        fb.x += fb.dx * fb.speed;
+        fb.y += fb.dy * fb.speed;
+        if (fb.x < -20 || fb.x > canvas.width + 20 ||
+            fb.y < -20 || fb.y > canvas.height + 20) {
             fireballs.splice(i, 1);
         }
     }
@@ -2571,22 +2591,19 @@ function applyPowerUp(type) {
             const originalShoot = shootFireball;
             window.shootFireball = function() {
                 originalShoot.call(this);
-                fireballs.push({
-                    x: dragon.x + dragon.width / 2 - 15,
-                    y: dragon.y,
-                    radius: 8,
-                    speed: 8,
-                    damage: 1,
-                    isBig: false
-                });
-                fireballs.push({
-                    x: dragon.x + dragon.width / 2 + 15,
-                    y: dragon.y,
-                    radius: 8,
-                    speed: 8,
-                    damage: 1,
-                    isBig: false
-                });
+                if (directionalShooting) {
+                    // Fan out perpendicular to aim direction
+                    const perpDx = -dragon.aimDir.dy;
+                    const perpDy =  dragon.aimDir.dx;
+                    const cx = dragon.x + dragon.width / 2;
+                    const cy = dragon.y + dragon.height / 2;
+                    fireballs.push({ x: cx + perpDx * 18 + dragon.aimDir.dx * 45, y: cy + perpDy * 18 + dragon.aimDir.dy * 45, dx: dragon.aimDir.dx, dy: dragon.aimDir.dy, radius: 8, speed: 8, damage: 1, isBig: false });
+                    fireballs.push({ x: cx - perpDx * 18 + dragon.aimDir.dx * 45, y: cy - perpDy * 18 + dragon.aimDir.dy * 45, dx: dragon.aimDir.dx, dy: dragon.aimDir.dy, radius: 8, speed: 8, damage: 1, isBig: false });
+                } else {
+                    // Classic: two extra upward fireballs offset left/right
+                    fireballs.push({ x: dragon.x + dragon.width / 2 - 15, y: dragon.y, dx: 0, dy: -1, radius: 8, speed: 8, damage: 1, isBig: false });
+                    fireballs.push({ x: dragon.x + dragon.width / 2 + 15, y: dragon.y, dx: 0, dy: -1, radius: 8, speed: 8, damage: 1, isBig: false });
+                }
             };
             setTimeout(() => {
                 window.shootFireball = originalShoot;

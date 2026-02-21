@@ -49,9 +49,27 @@
                 <div class="button-row">
                     <button onclick="startGame()">Start Game</button>
                     <button class="btn-secondary" onclick="showAbout()">About</button>
+                    <button class="btn-secondary" onclick="showSettings()">⚙️</button>
                 </div>
                 <div id="cheat-zone" onclick="activateCheatZone()">🔮</div>
                 <input type="text" id="cheat-input" class="hidden" placeholder="enter code..." maxlength="20" autocomplete="off" spellcheck="false">
+            </div>
+            <!-- Settings screen -->
+            <div id="panel-settings" class="hidden">
+                <h2>Settings</h2>
+                <div class="setting-row">
+                    <div class="setting-label">
+                        <span>Directional Shooting</span>
+                        <span class="setting-desc">Fireballs follow your movement direction</span>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="setting-directional" onchange="toggleDirectionalShooting(this.checked)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="button-row">
+                    <button class="btn-secondary" onclick="showControls()">← Back</button>
+                </div>
             </div>
             <!-- About screen -->
             <div id="panel-about" class="hidden">
@@ -75,13 +93,21 @@
             document.getElementById('panel-controls').classList.add('hidden');
             document.getElementById('panel-about').classList.remove('hidden');
         }
+        function showSettings() {
+            document.getElementById('panel-controls').classList.add('hidden');
+            document.getElementById('panel-settings').classList.remove('hidden');
+        }
         function showControls() {
             document.getElementById('panel-about').classList.add('hidden');
+            document.getElementById('panel-settings').classList.add('hidden');
             document.getElementById('panel-controls').classList.remove('hidden');
         }
 
         // Allow Enter key to submit math answer
         document.addEventListener('DOMContentLoaded', () => {
+            // Restore saved settings
+            document.getElementById('setting-directional').checked = directionalShooting;
+
             const mathInput = document.getElementById('math-answer');
             mathInput.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') {
